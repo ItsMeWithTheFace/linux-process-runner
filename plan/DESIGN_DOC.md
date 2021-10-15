@@ -13,12 +13,12 @@ The library will contain the bulk of the logic to start, stop, and query
 for job info as well as getting the output of a running job.
 
 Users will be able to start a single job by providing a command and arguments
-in a request. To keep things simple, we will run these commands on the host
-instance itself under a provisioned user that is not `root`. Jobs started by any user
-will be run as this user internally. Ideally, we would want to isolate ownership of the jobs like 
-having each Linux process running as the authenticated user. We could go further by spawning 
-a separate instance to run each user's job on, to prevent multiple users' jobs from 
-interfering with each other.
+in a request. To start multiple jobs, the user will need to make multiple independent requests.
+To keep things simple, we will run these commands on the host instance itself under a provisioned
+user that is not `root`. Jobs started by any user will be run as this user internally. Ideally, we
+would want to isolate ownership of the jobs like having each Linux process running as the 
+authenticated user. We could go further by spawning a separate instance to run each user's job on, 
+to prevent multiple users' jobs from interfering with each other.
 
 When a job starts, its output will be appended to a file under `/var/log/<job_id>.log`. Users
 looking to stream the output of a job will be met with the output of this log file
