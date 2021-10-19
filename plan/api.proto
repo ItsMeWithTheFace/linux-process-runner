@@ -4,7 +4,8 @@ enum JobState {
   CREATED = 0;
   RUNNING = 1;
   STOPPED = 2;
-  ERROR = 3;
+  COMPLETED = 3;
+  ERROR = 4;
 }
 
 message JobInfo {
