@@ -6,22 +6,18 @@ with the ability to run Linux processes in the form of a job.
 ## Library
 
 First we will define the concept of a job for this library. A job will
-consist of a unique ID, the command, supplied arguments, owning user
-and state (i.e., running, stopped).
+consist of a unique ID (which will be a generated UUID), the command, supplied 
+arguments, owning user and state (i.e., running, stopped).
 
 The library will contain the bulk of the logic to start, stop, and query
 for job info as well as getting the output of a running job.
 
 Users will be able to start a single job by providing a command and arguments
-in a request. To start multiple jobs, the user will need to make multiple independent requests.
-To keep things simple, we will run these commands on the host instance itself under a provisioned
-user that is not `root`. Jobs started by any user will be run as this user internally. Ideally, we
-would want to isolate ownership of the jobs like having each Linux process running as the 
-authenticated user. We could go further by spawning a separate instance to run each user's job on, 
-to prevent multiple users' jobs from interfering with each other.
+in a request. The command will be run as a new process as `root` (or whichever user the server is 
+started as). To start multiple jobs, the user will need to make multiple independent requests.
 
-When a job starts, its output will be appended to a file under `/var/log/<job_id>.log`. Users
-looking to stream the output of a job will be met with the output of this log file
+When a job starts, its output will be appended to a file under `/var/log/linux-process-runner/<job_id>.log`. 
+Users looking to stream the output of a job will be met with the output of this log file
 from the beginning of execution.
 
 We can also stop a job by supplying the unique ID. This will terminate the job regardless of
@@ -49,5 +45,24 @@ are not included.
 
 ## Authorization
 
-Any user will be able to query for a job's metadata. Each user will only be able to start and stop
-their own jobs.
+Any user will be able to query for a job's metadata. Each user will only be able to start, stop and stream their own jobs.
+
+We will store an in-memory mapping of each job's unique ID to the Serial Number of the authenticated 
+x509 client certificate. For this prototype, we'll have a self-signed CA and generate client 
+certificates from it, which should be unique within the CA. When a job is created we will add 
+a new record to this store. When a stop/stream request is made, we will check for this mapping or 
+return an unauthorized error if a mapping is not found.
+
+## Improvements/Out of Scope Features
+
+Ideally, we would want to avoid running the provided commands as `root` (or the OS user that the 
+server runs as). One improvement would be mapping each authenticated user to an internal OS user with 
+some permission type (i.e., standard, admin) which limits the type of commands it can run. We could 
+go further by spawning a separate instance to run each user's job on, to prevent multiple users' jobs 
+from interfering with each other.
+
+In the [Authentication](#authentication) section we mentioned generating a self-signed CA and then 
+generating client certificates from it to use in mTLS authentication. We could provide an API that
+allows users to register and retrieve client certificates to authenticate with the main API.
+This way we control unique Serial Number generation for each client as well as handle certificate
+revocation and rotation.
