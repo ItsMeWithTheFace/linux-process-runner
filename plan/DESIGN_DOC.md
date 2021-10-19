@@ -14,7 +14,9 @@ for job info as well as getting the output of a running job.
 
 Users will be able to start a single job by providing a command and arguments
 in a request. The command will be run as a new process as `root` (or whichever user the server is 
-started as). To start multiple jobs, the user will need to make multiple independent requests.
+started as). To start multiple jobs, the user will need to make multiple independent requests. Job
+metadata will be stored in-memory as a mapping of the Job ID to JobInfo and `Cmd` (i.e., the Command
+struct from `os/exec`).
 
 When a job starts, its output will be appended to a file under `/var/log/linux-process-runner/<job_id>.log`. 
 Users looking to stream the output of a job will be met with the output of this log file
@@ -47,17 +49,78 @@ are not included.
 
 Any user will be able to query for a job's metadata. Each user will only be able to start, stop and stream their own jobs.
 
-We will store an in-memory mapping of each job's unique ID to the Serial Number of the authenticated 
-x509 client certificate. For this prototype, we'll have a self-signed CA and generate client 
-certificates from it, which should be unique within the CA. When a job is created we will add 
-a new record to this store. When a stop/stream request is made, we will check for this mapping or 
-return an unauthorized error if a mapping is not found.
+As mentioned in the [Library](#library) section, we will store an in-memory mapping of each job's 
+unique ID to JobInfo and Command. The `owner` field in JobInfo will be the Serial Number of the 
+authenticated x509 client certificate. For this prototype, we'll have a self-signed CA and generate 
+client certificates from it, which should be unique within the CA. When a job is created we will add 
+a new record to this store. When a stop/stream request is made, we will check the authenticated 
+certificate's serial number (and CA) against the job's serial number and server CA. This will return
+the expected output for stop/stream if successful and an unauthorized error if not.
+
+## Client Usage
+
+The client will have 4 commands, `start`, `stop`, `get`, and `stream`. Here are some examples of 
+client usage that will interact with the API:
+
+### Start Job
+`usage: ./client start COMMAND [ARGUMENTS ...]`
+```bash
+./client start ls -l
+----
+Job ID: ed954e11-ef5a-4b61-b698-8537055d0adc
+Client ID (owner): 123456
+
+Command: ls
+Arguments: [-l]
+
+State: CREATED
+----
+```
+
+### Stop Job
+`usage: ./client stop UUID`
+```bash
+./client stop ed954e11-ef5a-4b61-b698-8537055d0adc
+----
+Job ID: ed954e11-ef5a-4b61-b698-8537055d0adc
+Client ID (owner): 123456
+
+Command: ls
+Arguments: [-l]
+
+State: STOPPED
+----
+```
+
+### Get Job Info
+`usage: ./client get UUID`
+```bash
+./client get ed954e11-ef5a-4b61-b698-8537055d0adc
+----
+Job ID: ed954e11-ef5a-4b61-b698-8537055d0adc
+Client ID (owner): 123456
+
+Command: ls
+Arguments: [-l]
+
+State: RUNNING
+----
+```
+
+### Stream Job Output
+`usage: ./client stream UUID`
+```bash
+./client stream ed954e11-ef5a-4b61-b698-8537055d0adc
+total 8
+-rw-r--r--  1 rakinuddin  staff   74 15 Oct 17:06 README.md
+drwxr-xr-x  4 rakinuddin  staff  128 15 Oct 17:05 plan
+```
 
 ## Improvements/Out of Scope Features
 
 Ideally, we would want to avoid running the provided commands as `root` (or the OS user that the 
 server runs as). One improvement would be mapping each authenticated user to an internal OS user with 
-some permission type (i.e., standard, admin) which limits the type of commands it can run. We could 
+some permission type (i.e., standard, admin) which limits the types of commands it can run. We could 
 go further by spawning a separate instance to run each user's job on, to prevent multiple users' jobs 
 from interfering with each other.
 
@@ -66,3 +129,13 @@ generating client certificates from it to use in mTLS authentication. We could p
 allows users to register and retrieve client certificates to authenticate with the main API.
 This way we control unique Serial Number generation for each client as well as handle certificate
 revocation and rotation.
+
+I mentioned storing job data in-memory in a few places. On a production-ready system we would replace
+these with persistent datastores (such as a database) to maintain data in the event of a reboot and
+allow the system to scale properly.
+
+The current implementation of having the job output piped into logs (i.e., in files under `/var/log/linux-process-runner/`)
+can fill up the disk if we were to run a command with an extremely large output. We could mitigate
+this on a production system by streaming the output directly to a scalable storage solution (for 
+example, AWS S3) or compressing and shipping logs in batches to a persistent datastore via something 
+like `logrotate`.
