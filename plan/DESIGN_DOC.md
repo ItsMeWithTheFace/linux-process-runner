@@ -63,7 +63,7 @@ The client will have 4 commands, `start`, `stop`, `get`, and `stream`. Here are 
 client usage that will interact with the API:
 
 ### Start Job
-`usage: ./client start COMMAND [ARGUMENTS ...]`
+`usage: ./client start --cert CERT_PATH --cert-key KEY_PATH COMMAND [ARGUMENTS ...]`
 ```bash
 ./client start ls -l
 ----
@@ -78,7 +78,7 @@ State: CREATED
 ```
 
 ### Stop Job
-`usage: ./client stop UUID`
+`usage: ./client stop --cert CERT_PATH --cert-key KEY_PATH UUID`
 ```bash
 ./client stop ed954e11-ef5a-4b61-b698-8537055d0adc
 ----
@@ -93,7 +93,7 @@ State: STOPPED
 ```
 
 ### Get Job Info
-`usage: ./client get UUID`
+`usage: ./client get --cert CERT_PATH --cert-key KEY_PATH UUID`
 ```bash
 ./client get ed954e11-ef5a-4b61-b698-8537055d0adc
 ----
@@ -108,7 +108,7 @@ State: RUNNING
 ```
 
 ### Stream Job Output
-`usage: ./client stream UUID`
+`usage: ./client stream --cert CERT_PATH --cert-key KEY_PATH UUID`
 ```bash
 ./client stream ed954e11-ef5a-4b61-b698-8537055d0adc
 total 8
