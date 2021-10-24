@@ -9,7 +9,7 @@ import (
 )
 
 type JobStore interface {
-	CreateRecord(*exec.Cmd, int32, JobState, error) (*JobInfo, error)
+	CreateRecord(*exec.Cmd, int32, JobState, error) *JobInfo
 	GetRecord(string) (*JobInfo, error)
 	UpdateRecordState(string, JobState)
 	UpdateRecordError(string, error)
@@ -27,24 +27,20 @@ func InitializeInMemoryJobStore() InMemoryJobStore {
 	}
 }
 
-func (store InMemoryJobStore) CreateRecord(cmd *exec.Cmd, owner int32, state JobState, jobError error) (*JobInfo, error) {
+func (store InMemoryJobStore) CreateRecord(cmd *exec.Cmd, owner int32, state JobState, jobError error) *JobInfo {
 
-	id, err := uuid.NewRandom()
-
-	if err != nil {
-		return nil, err
-	}
+	id := uuid.New()
 
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	store.jobs[id.String()] = &JobInfo{
-		id.String(),
-		cmd,
-		owner,
-		state,
-		jobError,
+		Id:    id.String(),
+		Cmd:   cmd,
+		Owner: owner,
+		State: state,
+		Err:   jobError,
 	}
-	return store.jobs[id.String()], nil
+	return store.jobs[id.String()]
 }
 
 func (store InMemoryJobStore) GetRecord(id string) (*JobInfo, error) {
@@ -59,11 +55,11 @@ func (store InMemoryJobStore) GetRecord(id string) (*JobInfo, error) {
 func (store InMemoryJobStore) UpdateRecordState(id string, newState JobState) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
-	store.jobs[id].state = newState
+	store.jobs[id].State = newState
 }
 
 func (store InMemoryJobStore) UpdateRecordError(id string, newError error) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
-	store.jobs[id].err = newError
+	store.jobs[id].Err = newError
 }

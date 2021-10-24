@@ -32,20 +32,19 @@ func (suite *InMemoryJobStoreTestSuite) TestCreateRecord() {
 	}
 
 	for _, tc := range cases {
-		record, err := suite.store.CreateRecord(exec.Command(tc.command, tc.arguments...), tc.owner, tc.state, tc.jobError)
-		assert.Nil(suite.T(), err, "it should not produce an error")
-		assert.NotNil(suite.T(), record.id, "it has an ID")
-		assert.Equal(suite.T(), tc.command, record.cmd.Path, "it has the same command")
-		assert.Equal(suite.T(), tc.arguments, record.cmd.Args[1:], "it has the same arguments")
-		assert.Equal(suite.T(), tc.owner, record.owner, "it has the same owner")
-		assert.Equal(suite.T(), tc.state, record.state, "it has the same state")
-		assert.Equal(suite.T(), tc.jobError, record.err, "it has the same error")
+		record := suite.store.CreateRecord(exec.Command(tc.command, tc.arguments...), tc.owner, tc.state, tc.jobError)
+		assert.NotNil(suite.T(), record.Id, "it has an ID")
+		assert.Equal(suite.T(), tc.command, record.Cmd.Path, "it has the same command")
+		assert.Equal(suite.T(), tc.arguments, record.Cmd.Args[1:], "it has the same arguments")
+		assert.Equal(suite.T(), tc.owner, record.Owner, "it has the same owner")
+		assert.Equal(suite.T(), tc.state, record.State, "it has the same state")
+		assert.Equal(suite.T(), tc.jobError, record.Err, "it has the same error")
 	}
 }
 
 func (suite *InMemoryJobStoreTestSuite) TestGetExistingRecord() {
-	jobInfo, err := suite.store.CreateRecord(exec.Command("tail", "-f", "log.txt"), 789, CREATED, nil)
-	retrievedJobInfo, err := suite.store.GetRecord(jobInfo.id)
+	jobInfo := suite.store.CreateRecord(exec.Command("tail", "-f", "log.txt"), 789, CREATED, nil)
+	retrievedJobInfo, err := suite.store.GetRecord(jobInfo.Id)
 	assert.Nil(suite.T(), err, "it should not return an error")
 	assert.Equal(suite.T(), jobInfo, retrievedJobInfo, "retrieved record should be equal to created record")
 }
@@ -57,10 +56,9 @@ func (suite *InMemoryJobStoreTestSuite) TestGetNonExistentRecord() {
 }
 
 func (suite *InMemoryJobStoreTestSuite) TestUpdateRecordState() {
-	jobInfo, err := suite.store.CreateRecord(exec.Command("tail", "-f", "log.txt"), 789, CREATED, nil)
-	suite.store.UpdateRecordState(jobInfo.id, STOPPED)
-	assert.Nil(suite.T(), err, "it should not return an error")
-	assert.Equal(suite.T(), JobState(STOPPED), jobInfo.state)
+	jobInfo := suite.store.CreateRecord(exec.Command("tail", "-f", "log.txt"), 789, CREATED, nil)
+	suite.store.UpdateRecordState(jobInfo.Id, STOPPED)
+	assert.Equal(suite.T(), JobState(STOPPED), jobInfo.State)
 }
 
 func TestInMemoryJobTestSuite(t *testing.T) {
