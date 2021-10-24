@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"io"
 	"os/exec"
 )
@@ -39,9 +40,7 @@ func InitializeJobRunner(store JobStore) JobRunner {
 	return JobRunner{store}
 }
 
-func (jr JobRunner) StartJob(command string, arguments []string) (*JobInfo, error) {
-	cmd := exec.Command(command, arguments...)
-
+func (jr JobRunner) StartJob(cmd *exec.Cmd) (*JobInfo, error) {
 	// TODO: replace with user's cert serial number
 	var user int32 = 1
 
@@ -65,6 +64,10 @@ func (jr JobRunner) StopJob(id string) error {
 
 	if err != nil {
 		return err
+	}
+
+	if job.Cmd.Process == nil {
+		return fmt.Errorf("Cannot stop a nil process")
 	}
 
 	err = job.Cmd.Process.Kill()
