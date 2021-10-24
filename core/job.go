@@ -16,11 +16,11 @@ const (
 )
 
 type JobInfo struct {
-	id    string
-	cmd   *exec.Cmd
-	owner int32
-	state JobState
-	err   error
+	Id    string
+	Cmd   *exec.Cmd
+	Owner int32
+	State JobState
+	Err   error
 }
 
 type JobRunner struct {
@@ -28,29 +28,35 @@ type JobRunner struct {
 }
 
 type JobManager interface {
-	StartJob(string, []string) error
+	StartJob(string, []string) (*JobInfo, error)
 	StopJob(string) error
 	StreamJob(string) ([]byte, error)
 	GetJob(string) (*JobInfo, error)
 }
 
-func (jr JobRunner) StartJob(command string, arguments []string) error {
+func InitializeJobRunner(store JobStore) JobRunner {
+	return JobRunner{store}
+}
+
+func (jr JobRunner) StartJob(command string, arguments []string) (*JobInfo, error) {
 	cmd := exec.Command(command, arguments...)
 
-	job, err := jr.store.CreateRecord(cmd, 1, JobState(CREATED), nil)
+	// TODO: replace with user's cert serial number
+	var user int32 = 1
+
+	job := jr.store.CreateRecord(cmd, user, JobState(CREATED), nil)
+
+	err := jr.runJob(job.Id, cmd)
 
 	if err != nil {
-		return err
+		jr.store.UpdateRecordState(job.Id, JobState(ERROR))
+		jr.store.UpdateRecordError(job.Id, err)
+		return nil, err
 	}
 
-	if jr.runJob(job.id, cmd); err != nil {
-		jr.store.UpdateRecordState(job.id, JobState(ERROR))
-		jr.store.UpdateRecordError(job.id, err)
-		return err
-	}
+	jr.store.UpdateRecordState(job.Id, JobState(COMPLETED))
 
-	jr.store.UpdateRecordState(job.id, JobState(COMPLETED))
-	return nil
+	return job, nil
 }
 
 func (jr JobRunner) StopJob(id string) error {
@@ -60,13 +66,15 @@ func (jr JobRunner) StopJob(id string) error {
 		return err
 	}
 
-	if job.cmd.Process.Kill(); err != nil {
-		jr.store.UpdateRecordState(job.id, JobState(ERROR))
-		jr.store.UpdateRecordError(job.id, err)
+	err = job.Cmd.Process.Kill()
+
+	if err != nil {
+		jr.store.UpdateRecordState(job.Id, JobState(ERROR))
+		jr.store.UpdateRecordError(job.Id, err)
 		return err
 	}
 
-	jr.store.UpdateRecordState(job.id, JobState(STOPPED))
+	jr.store.UpdateRecordState(job.Id, JobState(STOPPED))
 
 	return nil
 }
@@ -94,7 +102,9 @@ func (jr JobRunner) runJob(id string, cmd *exec.Cmd) error {
 		return err
 	}
 
-	if err := cmd.Start(); err != nil {
+	err = cmd.Start()
+
+	if err != nil {
 		return err
 	}
 
