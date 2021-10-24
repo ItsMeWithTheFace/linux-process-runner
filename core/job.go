@@ -16,11 +16,12 @@ const (
 )
 
 type JobInfo struct {
-	Id    string
-	Cmd   *exec.Cmd
-	Owner int32
-	State JobState
-	Err   error
+	Id     string
+	Cmd    *exec.Cmd
+	Output LogBuffer
+	Owner  int32
+	State  JobState
+	Err    error
 }
 
 type JobRunner struct {
@@ -101,6 +102,8 @@ func (jr JobRunner) runJob(id string, cmd *exec.Cmd) error {
 	if err != nil {
 		return err
 	}
+
+	jr.store.UpdateRecordOutput(id, lb)
 
 	err = cmd.Start()
 

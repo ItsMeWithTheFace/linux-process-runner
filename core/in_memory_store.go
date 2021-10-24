@@ -11,6 +11,7 @@ import (
 type JobStore interface {
 	CreateRecord(*exec.Cmd, int32, JobState, error) *JobInfo
 	GetRecord(string) (*JobInfo, error)
+	UpdateRecordOutput(string, LogBuffer)
 	UpdateRecordState(string, JobState)
 	UpdateRecordError(string, error)
 }
@@ -50,6 +51,12 @@ func (store InMemoryJobStore) GetRecord(id string) (*JobInfo, error) {
 		return jobInfo, nil
 	}
 	return nil, errors.New("Querying for record that does not exist")
+}
+
+func (store InMemoryJobStore) UpdateRecordOutput(id string, logBuffer LogBuffer) {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	store.jobs[id].Output = logBuffer
 }
 
 func (store InMemoryJobStore) UpdateRecordState(id string, newState JobState) {
