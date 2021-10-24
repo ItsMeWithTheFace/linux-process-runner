@@ -1,7 +1,7 @@
 package core
 
 import (
-	"errors"
+	"fmt"
 	"os/exec"
 	"testing"
 
@@ -28,11 +28,11 @@ func (suite *InMemoryJobStoreTestSuite) TestCreateRecord() {
 	}{
 		{"/bin/ls", []string{}, 123, STOPPED, nil},
 		{"/usr/bin/tail", []string{"-f", "log.txt"}, 789, CREATED, nil},
-		{"/bin/cp", []string{"file1", "file2"}, 456, ERROR, errors.New("File does not exist")},
+		{"/bin/cp", []string{"file1", "file2"}, 456, ERROR, fmt.Errorf("File does not exist")},
 	}
 
 	for _, tc := range cases {
-		record := suite.store.CreateRecord(exec.Command(tc.command, tc.arguments...), tc.owner, tc.state, tc.jobError)
+		record := suite.store.CreateRecord("1", exec.Command(tc.command, tc.arguments...), tc.owner, tc.state, tc.jobError)
 		assert.NotEmpty(suite.T(), record.Id, "it has an ID")
 		assert.Equal(suite.T(), tc.command, record.Cmd.Path, "it has the same command")
 		assert.Equal(suite.T(), tc.arguments, record.Cmd.Args[1:], "it has the same arguments")
@@ -43,7 +43,7 @@ func (suite *InMemoryJobStoreTestSuite) TestCreateRecord() {
 }
 
 func (suite *InMemoryJobStoreTestSuite) TestGetExistingRecord() {
-	jobInfo := suite.store.CreateRecord(exec.Command("tail", "-f", "log.txt"), 789, CREATED, nil)
+	jobInfo := suite.store.CreateRecord("1", exec.Command("tail", "-f", "log.txt"), 789, CREATED, nil)
 	retrievedJobInfo, err := suite.store.GetRecord(jobInfo.Id)
 	assert.Nil(suite.T(), err, "it should not return an error")
 	assert.Equal(suite.T(), jobInfo, retrievedJobInfo, "retrieved record should be equal to created record")
@@ -56,13 +56,13 @@ func (suite *InMemoryJobStoreTestSuite) TestGetNonExistentRecord() {
 }
 
 func (suite *InMemoryJobStoreTestSuite) TestUpdateRecordState() {
-	jobInfo := suite.store.CreateRecord(exec.Command("tail", "-f", "log.txt"), 789, CREATED, nil)
+	jobInfo := suite.store.CreateRecord("1", exec.Command("tail", "-f", "log.txt"), 789, CREATED, nil)
 	suite.store.UpdateRecordState(jobInfo.Id, STOPPED)
 	assert.Equal(suite.T(), JobState(STOPPED), jobInfo.State)
 }
 
 func (suite *InMemoryJobStoreTestSuite) TestUpdateRecordOutput() {
-	jobInfo := suite.store.CreateRecord(exec.Command("tail", "-f", "log.txt"), 789, CREATED, nil)
+	jobInfo := suite.store.CreateRecord("1", exec.Command("tail", "-f", "log.txt"), 789, CREATED, nil)
 	lb, _ := NewLogBuffer(jobInfo.Id)
 	suite.store.UpdateRecordOutput(jobInfo.Id, lb)
 	assert.Equal(suite.T(), lb, jobInfo.Output)

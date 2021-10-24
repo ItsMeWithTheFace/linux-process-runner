@@ -30,9 +30,8 @@ type JobRunner struct {
 }
 
 type JobManager interface {
-	StartJob(string, []string) (*JobInfo, error)
+	StartJob(string, *exec.Cmd) error
 	StopJob(string) error
-	StreamJob(string) ([]byte, error)
 	GetJob(string) (*JobInfo, error)
 }
 
@@ -40,23 +39,23 @@ func InitializeJobRunner(store JobStore) JobRunner {
 	return JobRunner{store}
 }
 
-func (jr JobRunner) StartJob(cmd *exec.Cmd) (*JobInfo, error) {
+func (jr JobRunner) StartJob(id string, cmd *exec.Cmd) error {
 	// TODO: replace with user's cert serial number
 	var user int32 = 1
 
-	job := jr.store.CreateRecord(cmd, user, JobState(CREATED), nil)
+	job := jr.store.CreateRecord(id, cmd, user, JobState(CREATED), nil)
 
 	err := jr.runJob(job.Id, cmd)
 
 	if err != nil {
 		jr.store.UpdateRecordState(job.Id, JobState(ERROR))
 		jr.store.UpdateRecordError(job.Id, err)
-		return nil, err
+		return err
 	}
 
 	jr.store.UpdateRecordState(job.Id, JobState(COMPLETED))
 
-	return job, nil
+	return nil
 }
 
 func (jr JobRunner) StopJob(id string) error {

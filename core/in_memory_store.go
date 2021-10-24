@@ -1,15 +1,13 @@
 package core
 
 import (
-	"errors"
+	"fmt"
 	"os/exec"
 	"sync"
-
-	uuid "github.com/google/uuid"
 )
 
 type JobStore interface {
-	CreateRecord(*exec.Cmd, int32, JobState, error) *JobInfo
+	CreateRecord(string, *exec.Cmd, int32, JobState, error) *JobInfo
 	GetRecord(string) (*JobInfo, error)
 	UpdateRecordOutput(string, LogBuffer)
 	UpdateRecordState(string, JobState)
@@ -28,20 +26,17 @@ func InitializeInMemoryJobStore() InMemoryJobStore {
 	}
 }
 
-func (store InMemoryJobStore) CreateRecord(cmd *exec.Cmd, owner int32, state JobState, jobError error) *JobInfo {
-
-	id := uuid.New()
-
+func (store InMemoryJobStore) CreateRecord(id string, cmd *exec.Cmd, owner int32, state JobState, jobError error) *JobInfo {
 	store.mu.Lock()
 	defer store.mu.Unlock()
-	store.jobs[id.String()] = &JobInfo{
-		Id:    id.String(),
+	store.jobs[id] = &JobInfo{
+		Id:    id,
 		Cmd:   cmd,
 		Owner: owner,
 		State: state,
 		Err:   jobError,
 	}
-	return store.jobs[id.String()]
+	return store.jobs[id]
 }
 
 func (store InMemoryJobStore) GetRecord(id string) (*JobInfo, error) {
@@ -50,7 +45,7 @@ func (store InMemoryJobStore) GetRecord(id string) (*JobInfo, error) {
 	if jobInfo, ok := store.jobs[id]; ok {
 		return jobInfo, nil
 	}
-	return nil, errors.New("Querying for record that does not exist")
+	return nil, fmt.Errorf("Querying for record that does not exist")
 }
 
 func (store InMemoryJobStore) UpdateRecordOutput(id string, logBuffer LogBuffer) {

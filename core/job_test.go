@@ -21,13 +21,16 @@ func (suite *JobTestSuite) SetupTest() {
 
 func (suite *JobTestSuite) TestStartJob() {
 	cmd := mockExecCommand("echo", "hello", "world")
-	job, _ := suite.jr.StartJob(cmd)
+	err := suite.jr.StartJob("1", cmd)
+	job, _ := suite.jr.store.GetRecord("1")
+
+	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), JobState(COMPLETED), job.State)
 }
 
 func (suite *JobTestSuite) TestStopJob() {
 	cmd := mockExecCommand("echo", "hello", "world")
-	job := suite.jr.store.CreateRecord(cmd, 1, JobState(CREATED), nil)
+	job := suite.jr.store.CreateRecord("1", cmd, 1, JobState(CREATED), nil)
 	cmd.Start()
 	suite.jr.StopJob(job.Id)
 
@@ -36,16 +39,15 @@ func (suite *JobTestSuite) TestStopJob() {
 
 func (suite *JobTestSuite) TestStopUnstartedJob() {
 	cmd := mockExecCommand("echo", "hello", "world")
-	job := suite.jr.store.CreateRecord(cmd, 1, JobState(CREATED), nil)
+	job := suite.jr.store.CreateRecord("1", cmd, 1, JobState(CREATED), nil)
 
 	assert.Error(suite.T(), suite.jr.StopJob(job.Id))
 }
 
 func (suite *JobTestSuite) TestRunJob() {
-	jr := InitializeJobRunner(InitializeInMemoryJobStore())
 	cmd := mockExecCommand("echo", "hello", "world")
-	job := jr.store.CreateRecord(cmd, 1, JobState(CREATED), nil)
-	jr.runJob(job.Id, cmd)
+	job := suite.jr.store.CreateRecord("1", cmd, 1, JobState(CREATED), nil)
+	suite.jr.runJob(job.Id, cmd)
 	assert.FileExists(suite.T(), fmt.Sprintf("/var/log/linux-process-runner/%s.log", job.Id))
 
 	lb := job.Output
