@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"sync"
 )
 
 type JobState int32
@@ -35,11 +36,12 @@ type JobInfo struct {
 // JobRunner handles starting, stopping and getting jobs.
 type JobRunner struct {
 	store *InMemoryJobStore
+	mu    *sync.RWMutex
 }
 
 // InitializeJobRunner creates a pointer to an instantiated JobRunner.
 func InitializeJobRunner(store *InMemoryJobStore) *JobRunner {
-	return &JobRunner{store: store}
+	return &JobRunner{store: store, mu: &sync.RWMutex{}}
 }
 
 // StartJob creates and runs a new job.
@@ -52,6 +54,8 @@ func (jr *JobRunner) StartJob(id string, cmd *exec.Cmd) error {
 	err := jr.runJob(job.Id, cmd)
 
 	if err != nil {
+		jr.mu.Lock()
+		defer jr.mu.Unlock()
 		jr.store.UpdateRecordState(job.Id, JobState(ERROR))
 		jr.store.UpdateRecordError(job.Id, err)
 		return err
@@ -83,6 +87,8 @@ func (jr *JobRunner) StopJob(id string) error {
 	err = job.Cmd.Process.Signal(os.Interrupt)
 
 	if err != nil {
+		jr.mu.Lock()
+		defer jr.mu.Unlock()
 		jr.store.UpdateRecordState(job.Id, JobState(ERROR))
 		jr.store.UpdateRecordError(job.Id, err)
 		return err
@@ -94,7 +100,9 @@ func (jr *JobRunner) StopJob(id string) error {
 }
 
 // GetJob retrieves an existing job from storage.
-func (jr *JobRunner) GetJob(id string) (*JobInfo, error) {
+func (jr *JobRunner) GetJob(id string) (JobInfo, error) {
+	jr.mu.RLock()
+	defer jr.mu.RUnlock()
 	return jr.store.GetRecord(id)
 }
 
