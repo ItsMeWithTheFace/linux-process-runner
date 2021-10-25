@@ -11,16 +11,16 @@ import (
 type JobState int32
 
 const (
-	// CREATED is the initial status when a job is spawned.
-	CREATED JobState = 0
-	// RUNNING indicates that a job is in progress.
-	RUNNING = 1
-	// STOPPED means a job has been manually terminated.
-	STOPPED = 2
-	// COMPLETED is assigned when the job has successfully finished running.
-	COMPLETED = 3
-	// ERROR is set if a command returned with a non-zero exit code.
-	ERROR = 4
+	// Created is the initial status when a job is spawned.
+	Created JobState = iota
+	// Running indicates that a job is in progress.
+	Running
+	// Stopped means a job has been manually terminated.
+	Stopped
+	// Completed is assigned when the job has successfully finished running.
+	Completed
+	// Error is set if a command returned with a non-zero exit code.
+	Error
 )
 
 // JobInfo represents a job within the server's context.
@@ -49,20 +49,21 @@ func (jr *JobRunner) StartJob(id string, cmd *exec.Cmd) error {
 	// TODO: replace with user's cert serial number
 	var user int32 = 1
 
-	job := jr.store.CreateRecord(id, cmd, user, JobState(CREATED), nil)
+	job := jr.store.CreateRecord(id, cmd, user, JobState(Created), nil)
 
 	err := jr.runJob(job.Id, cmd)
 
 	if err != nil {
 		jr.mu.Lock()
 		defer jr.mu.Unlock()
-		jr.store.UpdateRecordState(job.Id, JobState(ERROR))
+		jr.store.UpdateRecordState(job.Id, JobState(Error))
 		jr.store.UpdateRecordError(job.Id, err)
 		return err
 	}
 
-	if job.State <= RUNNING {
-		jr.store.UpdateRecordState(job.Id, JobState(COMPLETED))
+	job, err = jr.store.GetRecord(job.Id)
+	if job.State <= Running {
+		jr.store.UpdateRecordState(job.Id, JobState(Completed))
 	}
 
 	return nil
@@ -80,7 +81,7 @@ func (jr *JobRunner) StopJob(id string) error {
 		return fmt.Errorf("cannot stop a nil process")
 	}
 
-	if job.State > RUNNING {
+	if job.State > Running {
 		return fmt.Errorf("cannot stop a job in a terminal state")
 	}
 
@@ -89,12 +90,12 @@ func (jr *JobRunner) StopJob(id string) error {
 	if err != nil {
 		jr.mu.Lock()
 		defer jr.mu.Unlock()
-		jr.store.UpdateRecordState(job.Id, JobState(ERROR))
+		jr.store.UpdateRecordState(job.Id, JobState(Error))
 		jr.store.UpdateRecordError(job.Id, err)
 		return err
 	}
 
-	jr.store.UpdateRecordState(job.Id, JobState(STOPPED))
+	jr.store.UpdateRecordState(job.Id, JobState(Stopped))
 
 	return nil
 }
@@ -135,7 +136,7 @@ func (jr *JobRunner) runJob(id string, cmd *exec.Cmd) error {
 		return err
 	}
 
-	jr.store.UpdateRecordState(id, JobState(RUNNING))
+	jr.store.UpdateRecordState(id, JobState(Running))
 
 	if _, err := io.Copy(lb, output); err != nil {
 		return err
