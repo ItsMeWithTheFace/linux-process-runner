@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 )
 
@@ -56,7 +57,9 @@ func (jr *JobRunner) StartJob(id string, cmd *exec.Cmd) error {
 		return err
 	}
 
-	jr.store.UpdateRecordState(job.Id, JobState(COMPLETED))
+	if job.State <= RUNNING {
+		jr.store.UpdateRecordState(job.Id, JobState(COMPLETED))
+	}
 
 	return nil
 }
@@ -73,7 +76,11 @@ func (jr *JobRunner) StopJob(id string) error {
 		return fmt.Errorf("cannot stop a nil process")
 	}
 
-	err = job.Cmd.Process.Kill()
+	if job.State > RUNNING {
+		return fmt.Errorf("cannot stop a job in a terminal state")
+	}
+
+	err = job.Cmd.Process.Signal(os.Interrupt)
 
 	if err != nil {
 		jr.store.UpdateRecordState(job.Id, JobState(ERROR))
