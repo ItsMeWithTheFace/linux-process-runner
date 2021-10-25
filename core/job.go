@@ -36,7 +36,7 @@ type JobManager interface {
 }
 
 func InitializeJobRunner(store *InMemoryJobStore) *JobRunner {
-	return &JobRunner{store}
+	return &JobRunner{store: store}
 }
 
 func (jr JobRunner) StartJob(id string, cmd *exec.Cmd) error {
