@@ -21,7 +21,7 @@ func InitializeInMemoryJobStore() *InMemoryJobStore {
 }
 
 // CreateRecord inserts a new record of a job instance.
-func (store *InMemoryJobStore) CreateRecord(id string, cmd *exec.Cmd, owner int32, state JobState, jobError error) *JobInfo {
+func (store *InMemoryJobStore) CreateRecord(id string, cmd *exec.Cmd, owner int32, state JobState, jobError error) JobInfo {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	store.jobs[id] = &JobInfo{
@@ -31,17 +31,17 @@ func (store *InMemoryJobStore) CreateRecord(id string, cmd *exec.Cmd, owner int3
 		State: state,
 		Err:   jobError,
 	}
-	return store.jobs[id]
+	return *store.jobs[id]
 }
 
 // GetRecord returns info on a job if it exists.
-func (store *InMemoryJobStore) GetRecord(id string) (*JobInfo, error) {
+func (store *InMemoryJobStore) GetRecord(id string) (JobInfo, error) {
 	store.mu.RLock()
 	defer store.mu.RUnlock()
 	if jobInfo, ok := store.jobs[id]; ok {
-		return jobInfo, nil
+		return *jobInfo, nil
 	}
-	return nil, fmt.Errorf("querying for record that does not exist")
+	return JobInfo{}, fmt.Errorf("querying for record that does not exist")
 }
 
 // UpdateRecordOutput updates a job with an input/output stream to allow easy
