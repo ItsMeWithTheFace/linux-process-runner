@@ -62,6 +62,15 @@ func (suite *InMemoryJobStoreTestSuite) TestUpdateRecordState() {
 	assert.Equal(suite.T(), JobState(Stopped), updatedJobInfo.State)
 }
 
+func (suite *InMemoryJobStoreTestSuite) TestUpdateRecordError() {
+	err := fmt.Errorf("error while running tail")
+	jobInfo := suite.store.CreateRecord("1", exec.Command("tail", "-f", "log.txt"), 789, Created, nil)
+	suite.store.UpdateRecordError(jobInfo.Id, err)
+	updatedJobInfo, _ := suite.store.GetRecord(jobInfo.Id)
+	assert.Equal(suite.T(), JobState(Error), updatedJobInfo.State)
+	assert.Equal(suite.T(), err, updatedJobInfo.Err)
+}
+
 func (suite *InMemoryJobStoreTestSuite) TestUpdateRecordOutput() {
 	jobInfo := suite.store.CreateRecord("1", exec.Command("tail", "-f", "log.txt"), 789, Created, nil)
 	lb, err := NewLogBuffer(jobInfo.Id)

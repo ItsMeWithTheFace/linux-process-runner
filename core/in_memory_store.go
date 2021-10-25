@@ -64,4 +64,5 @@ func (store *InMemoryJobStore) UpdateRecordError(id string, newError error) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	store.jobs[id].Err = newError
+	store.jobs[id].State = JobState(Error)
 }

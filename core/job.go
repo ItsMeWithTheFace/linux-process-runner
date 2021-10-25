@@ -56,7 +56,6 @@ func (jr *JobRunner) StartJob(id string, cmd *exec.Cmd) error {
 	if err != nil {
 		jr.mu.Lock()
 		defer jr.mu.Unlock()
-		jr.store.UpdateRecordState(job.Id, JobState(Error))
 		jr.store.UpdateRecordError(job.Id, err)
 		return err
 	}
@@ -90,7 +89,6 @@ func (jr *JobRunner) StopJob(id string) error {
 	if err != nil {
 		jr.mu.Lock()
 		defer jr.mu.Unlock()
-		jr.store.UpdateRecordState(job.Id, JobState(Error))
 		jr.store.UpdateRecordError(job.Id, err)
 		return err
 	}
