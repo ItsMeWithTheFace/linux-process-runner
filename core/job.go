@@ -3,9 +3,9 @@ package core
 import (
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
 	"sync"
+	"syscall"
 )
 
 type JobState int32
@@ -53,7 +53,7 @@ func (jr *JobRunner) StartJob(id string, cmd *exec.Cmd) error {
 
 	err := jr.runJob(job.Id, cmd)
 
-	if err != nil {
+	if err != nil && !isKilled(err) {
 		jr.mu.Lock()
 		defer jr.mu.Unlock()
 		jr.store.UpdateRecordError(job.Id, err)
@@ -84,7 +84,7 @@ func (jr *JobRunner) StopJob(id string) error {
 		return fmt.Errorf("cannot stop a job in a terminal state")
 	}
 
-	err = job.Cmd.Process.Signal(os.Interrupt)
+	err = job.Cmd.Process.Kill()
 
 	if err != nil {
 		jr.mu.Lock()
@@ -143,4 +143,13 @@ func (jr *JobRunner) runJob(id string, cmd *exec.Cmd) error {
 	}
 
 	return cmd.Wait()
+}
+
+func isKilled(err error) bool {
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		if waitStatus, ok := exitErr.Sys().(syscall.WaitStatus); ok {
+			return waitStatus.Signal() == syscall.SIGKILL
+		}
+	}
+	return false
 }
