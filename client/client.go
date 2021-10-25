@@ -35,15 +35,21 @@ func (c *Client) handleArgs(args []string) {
 
 func (c *Client) handleStartJobCommand(ctx context.Context, command string, args []string) {
 	fmt.Println("starting job")
-	_, err := c.JobRunnerServiceClient.StartJob(ctx, &pb.JobStartRequest{Command: command, Arguments: args})
+	out, err := c.JobRunnerServiceClient.StartJob(ctx, &pb.JobStartRequest{Command: command, Arguments: args})
 
 	if err != nil {
 		fmt.Print(err.Error())
 	}
+
+	fmt.Println(out.GetId())
 }
 
 func (c *Client) handleStopJobCommand(ctx context.Context, id string) {
-	c.JobRunnerServiceClient.StopJob(ctx, &pb.JobStopRequest{Id: id})
+	_, err := c.JobRunnerServiceClient.StopJob(ctx, &pb.JobStopRequest{Id: id})
+
+	if err != nil {
+		fmt.Print(err.Error())
+	}
 }
 
 func (c *Client) handleGetJobCommand(ctx context.Context, id string) {
@@ -62,33 +68,30 @@ func (c *Client) handleStreamJobOutputCommand(ctx context.Context, id string) {
 		fmt.Print(err.Error())
 	}
 
-	waitc := make(chan struct{})
-	go func() {
-		for {
-			in, err := srv.Recv()
-			if err == io.EOF {
-				// read done.
-				close(waitc)
-				return
-			}
-			if err != nil {
-				fmt.Print(err.Error())
-			}
-			fmt.Print(string(in.GetOutput()))
+	for {
+		in, err := srv.Recv()
+
+		fmt.Print(string(in.GetOutput()))
+
+		if err == io.EOF {
+			fmt.Printf("finished reading stream")
+			return
 		}
-	}()
-	<-waitc
+
+		if err != nil {
+			fmt.Printf("stream: %s", err.Error())
+			return
+		}
+	}
 }
 
 func main() {
-	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithInsecure())
-	// cert := flag.String("cert", "/opt/pki/tls/certs/cert.pem", "absolute path to the public cert")
-	// key := flag.String("cert-key", "/opt/pki/tls/certs/cert.key", "absolute path to the private key of a cert")
+	// TODO: add TLS credentials
+	// TODO: add cert and cert-key flags
 
 	flag.Parse()
 
-	conn, err := grpc.Dial("localhost:8080", opts...)
+	conn, err := grpc.Dial("localhost:8080", grpc.WithInsecure())
 
 	if err != nil {
 		fmt.Printf(err.Error())
