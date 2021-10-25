@@ -41,7 +41,7 @@ func (store *InMemoryJobStore) GetRecord(id string) (*JobInfo, error) {
 	if jobInfo, ok := store.jobs[id]; ok {
 		return jobInfo, nil
 	}
-	return nil, fmt.Errorf("Querying for record that does not exist")
+	return nil, fmt.Errorf("querying for record that does not exist")
 }
 
 // UpdateRecordOutput updates a job with an input/output stream to allow easy

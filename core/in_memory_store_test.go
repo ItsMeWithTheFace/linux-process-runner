@@ -28,7 +28,7 @@ func (suite *InMemoryJobStoreTestSuite) TestCreateRecord() {
 	}{
 		{"/bin/ls", []string{}, 123, STOPPED, nil},
 		{"/usr/bin/tail", []string{"-f", "log.txt"}, 789, CREATED, nil},
-		{"/bin/cp", []string{"file1", "file2"}, 456, ERROR, fmt.Errorf("File does not exist")},
+		{"/bin/cp", []string{"file1", "file2"}, 456, ERROR, fmt.Errorf("file does not exist")},
 	}
 
 	for _, tc := range cases {

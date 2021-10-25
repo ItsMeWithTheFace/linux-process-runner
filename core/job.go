@@ -70,7 +70,7 @@ func (jr *JobRunner) StopJob(id string) error {
 	}
 
 	if job.Cmd.Process == nil {
-		return fmt.Errorf("Cannot stop a nil process")
+		return fmt.Errorf("cannot stop a nil process")
 	}
 
 	err = job.Cmd.Process.Kill()
