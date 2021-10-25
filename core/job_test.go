@@ -71,7 +71,8 @@ func TestHelper(t *testing.T) {
 	fmt.Print("hello world")
 }
 
-// based off exec_test.go from os/exec library
+// mockExecCommand returns a mock command that calls a helper function.
+// Based off exec_test.go from the os/exec library.
 func mockExecCommand(command string, args ...string) *exec.Cmd {
 	cs := []string{"-test.run=TestHelper", "--", command}
 	cs = append(cs, args...)

@@ -9,13 +9,19 @@ import (
 type JobState int32
 
 const (
-	CREATED   JobState = 0
-	RUNNING            = 1
-	STOPPED            = 2
-	COMPLETED          = 3
-	ERROR              = 4
+	// CREATED is the initial status when a job is spawned.
+	CREATED JobState = 0
+	// RUNNING indicates that a job is in progress.
+	RUNNING = 1
+	// STOPPED means a job has been manually terminated.
+	STOPPED = 2
+	// COMPLETED is assigned when the job has successfully finished running.
+	COMPLETED = 3
+	// ERROR is set if a command returned with a non-zero exit code.
+	ERROR = 4
 )
 
+// JobInfo represents a job within the server's context.
 type JobInfo struct {
 	Id     string
 	Cmd    *exec.Cmd
@@ -25,20 +31,17 @@ type JobInfo struct {
 	Err    error
 }
 
+// JobRunner handles starting, stopping and getting jobs.
 type JobRunner struct {
 	store *InMemoryJobStore
 }
 
-type JobManager interface {
-	StartJob(string, *exec.Cmd) error
-	StopJob(string) error
-	GetJob(string) (*JobInfo, error)
-}
-
+// InitializeJobRunner creates a pointer to an instantiated JobRunner.
 func InitializeJobRunner(store *InMemoryJobStore) *JobRunner {
 	return &JobRunner{store: store}
 }
 
+// StartJob creates and runs a new job.
 func (jr *JobRunner) StartJob(id string, cmd *exec.Cmd) error {
 	// TODO: replace with user's cert serial number
 	var user int32 = 1
@@ -58,6 +61,7 @@ func (jr *JobRunner) StartJob(id string, cmd *exec.Cmd) error {
 	return nil
 }
 
+// StopJob terminates a running job.
 func (jr *JobRunner) StopJob(id string) error {
 	job, err := jr.store.GetRecord(id)
 
@@ -82,10 +86,13 @@ func (jr *JobRunner) StopJob(id string) error {
 	return nil
 }
 
+// GetJob retrieves an existing job from storage.
 func (jr *JobRunner) GetJob(id string) (*JobInfo, error) {
 	return jr.store.GetRecord(id)
 }
 
+// runJob handles the output of the job. It combines stdout and stderr
+// into a single output that gets fed into a file on the system.
 func (jr *JobRunner) runJob(id string, cmd *exec.Cmd) error {
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
