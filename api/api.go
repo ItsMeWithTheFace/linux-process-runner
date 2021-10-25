@@ -30,10 +30,7 @@ func (s *JobRunnerServer) GetJobInfo(ctx context.Context, req *pb.JobQueryReques
 	job, err := s.jr.GetJob(req.GetId())
 
 	if err != nil {
-		return nil, status.Errorf(
-			codes.NotFound,
-			fmt.Sprintf("Cannot find job with ID: %s. Err: %s", req.GetId(), err.Error()),
-		)
+		return nil, handleError(req.GetId(), err)
 	}
 
 	r := &pb.JobInfo{
@@ -63,10 +60,7 @@ func (s *JobRunnerServer) StopJob(ctx context.Context, req *pb.JobStopRequest) (
 	err := s.jr.StopJob(req.GetId())
 
 	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			fmt.Sprintf("Could not stop job with ID: %s. Err: %s", req.GetId(), err.Error()),
-		)
+		return nil, handleError(req.GetId(), err)
 	}
 
 	return &pb.JobStopOutput{}, nil
@@ -78,16 +72,17 @@ func (s *JobRunnerServer) StreamJobOutput(req *pb.JobQueryRequest, srv pb.JobRun
 	if err != nil {
 		return status.Errorf(
 			codes.NotFound,
-			fmt.Sprintf("Cannot find job with ID: %s. Err: %s", req.GetId(), err.Error()),
+			fmt.Sprintf("cannot find job with ID: %s. Err: %s", req.GetId(), err.Error()),
 		)
 	}
 
 	r, err := job.Output.NewReader()
+	defer r.Close()
 
 	if err != nil {
 		return status.Errorf(
 			codes.Internal,
-			fmt.Sprintf("Cannot find job with ID: %s. Err: %s", req.GetId(), err.Error()),
+			fmt.Sprintf("cannot get output of job with ID: %s. Err: %s", req.GetId(), err.Error()),
 		)
 	}
 
@@ -95,7 +90,7 @@ func (s *JobRunnerServer) StreamJobOutput(req *pb.JobQueryRequest, srv pb.JobRun
 	for {
 		n, err := r.Read(buffer)
 
-		if n == 0 && err == io.EOF && job.State > c.RUNNING {
+		if n == 0 && err == io.EOF && job.State > c.Running {
 			return nil
 		}
 
@@ -104,8 +99,25 @@ func (s *JobRunnerServer) StreamJobOutput(req *pb.JobQueryRequest, srv pb.JobRun
 		if err != nil {
 			return status.Errorf(
 				codes.Internal,
-				fmt.Sprintf("Error streaming output for job with ID: %s. Err: %s", req.GetId(), err.Error()),
+				fmt.Sprintf("error streaming output for job with ID: %s. Err: %s", req.GetId(), err.Error()),
 			)
 		}
+
+		job, err = s.jr.GetJob(req.GetId())
+	}
+}
+
+func handleError(id string, err error) error {
+	switch err.(type) {
+	case *c.ErrNotFound:
+		return status.Errorf(
+			codes.NotFound,
+			fmt.Sprintf("cannot find job with ID: %s Err: %s", id, err.Error()),
+		)
+	default:
+		return status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("error for job: %s Err: %s", id, err.Error()),
+		)
 	}
 }
