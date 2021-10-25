@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+option go_package = "/;proto";
+
+enum JobState {
+  CREATED = 0;
+  RUNNING = 1;
+  STOPPED = 2;
+  COMPLETED = 3;
+  ERROR = 4;
+}
+
+message JobInfo {
+  string id = 1;
+  string command = 2;
+  repeated string arguments = 3;
+  
+  int32 owner = 4;
+
+  JobState state = 5;
+
+  string error = 6;
+}
+
+message JobStartRequest {
+  string command = 1;
+  repeated string arguments = 2;
+}
+
+message JobStopRequest {
+  string id = 1;
+}
+
+message JobQueryRequest {
+  string id = 1;
+}
+
+message JobStreamOutput {
+  bytes output = 1;
+}
+
+service JobRunnerService {
+  rpc StartJob (JobStartRequest) returns (JobInfo);
+  rpc StopJob (JobStopRequest) returns (JobInfo);
+  rpc GetJobInfo (JobQueryRequest) returns (JobInfo);
+
+  rpc StreamJobOutput (JobQueryRequest) returns (stream JobStreamOutput);
+}
