@@ -60,8 +60,7 @@ func (jr *JobRunner) StartJob(id string, cmd *exec.Cmd) error {
 		return err
 	}
 
-	job, err = jr.store.GetRecord(job.Id)
-	if job.State <= Running {
+	if job.Cmd.ProcessState.Success() {
 		jr.store.UpdateRecordState(job.Id, JobState(Completed))
 	}
 
@@ -80,7 +79,7 @@ func (jr *JobRunner) StopJob(id string) error {
 		return fmt.Errorf("cannot stop a nil process")
 	}
 
-	if job.State > Running {
+	if job.Cmd.ProcessState != nil || job.State > Running {
 		return fmt.Errorf("cannot stop a job in a terminal state")
 	}
 
@@ -145,6 +144,8 @@ func (jr *JobRunner) runJob(id string, cmd *exec.Cmd) error {
 	return cmd.Wait()
 }
 
+// isKilled checks if a command exited via a SIGKILL signal by
+// checking its Wait() status.
 func isKilled(err error) bool {
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		if waitStatus, ok := exitErr.Sys().(syscall.WaitStatus); ok {
