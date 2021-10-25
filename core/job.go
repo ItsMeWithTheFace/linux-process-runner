@@ -26,7 +26,7 @@ type JobInfo struct {
 }
 
 type JobRunner struct {
-	store JobStore
+	store *InMemoryJobStore
 }
 
 type JobManager interface {
@@ -35,8 +35,8 @@ type JobManager interface {
 	GetJob(string) (*JobInfo, error)
 }
 
-func InitializeJobRunner(store JobStore) JobRunner {
-	return JobRunner{store}
+func InitializeJobRunner(store *InMemoryJobStore) *JobRunner {
+	return &JobRunner{store}
 }
 
 func (jr JobRunner) StartJob(id string, cmd *exec.Cmd) error {

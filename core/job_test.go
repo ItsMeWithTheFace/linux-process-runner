@@ -12,7 +12,7 @@ import (
 
 type JobTestSuite struct {
 	suite.Suite
-	jr JobRunner
+	jr *JobRunner
 }
 
 func (suite *JobTestSuite) SetupTest() {

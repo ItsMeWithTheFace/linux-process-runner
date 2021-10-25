@@ -19,14 +19,14 @@ type InMemoryJobStore struct {
 	mu   *sync.RWMutex
 }
 
-func InitializeInMemoryJobStore() InMemoryJobStore {
-	return InMemoryJobStore{
+func InitializeInMemoryJobStore() *InMemoryJobStore {
+	return &InMemoryJobStore{
 		jobs: make(map[string]*JobInfo),
 		mu:   &sync.RWMutex{},
 	}
 }
 
-func (store InMemoryJobStore) CreateRecord(id string, cmd *exec.Cmd, owner int32, state JobState, jobError error) *JobInfo {
+func (store *InMemoryJobStore) CreateRecord(id string, cmd *exec.Cmd, owner int32, state JobState, jobError error) *JobInfo {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	store.jobs[id] = &JobInfo{
@@ -39,7 +39,7 @@ func (store InMemoryJobStore) CreateRecord(id string, cmd *exec.Cmd, owner int32
 	return store.jobs[id]
 }
 
-func (store InMemoryJobStore) GetRecord(id string) (*JobInfo, error) {
+func (store *InMemoryJobStore) GetRecord(id string) (*JobInfo, error) {
 	store.mu.RLock()
 	defer store.mu.RUnlock()
 	if jobInfo, ok := store.jobs[id]; ok {
@@ -48,19 +48,19 @@ func (store InMemoryJobStore) GetRecord(id string) (*JobInfo, error) {
 	return nil, fmt.Errorf("Querying for record that does not exist")
 }
 
-func (store InMemoryJobStore) UpdateRecordOutput(id string, logBuffer LogBuffer) {
+func (store *InMemoryJobStore) UpdateRecordOutput(id string, logBuffer LogBuffer) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	store.jobs[id].Output = logBuffer
 }
 
-func (store InMemoryJobStore) UpdateRecordState(id string, newState JobState) {
+func (store *InMemoryJobStore) UpdateRecordState(id string, newState JobState) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	store.jobs[id].State = newState
 }
 
-func (store InMemoryJobStore) UpdateRecordError(id string, newError error) {
+func (store *InMemoryJobStore) UpdateRecordError(id string, newError error) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	store.jobs[id].Err = newError

@@ -11,7 +11,7 @@ import (
 
 type InMemoryJobStoreTestSuite struct {
 	suite.Suite
-	store JobStore
+	store *InMemoryJobStore
 }
 
 func (suite *InMemoryJobStoreTestSuite) SetupTest() {
