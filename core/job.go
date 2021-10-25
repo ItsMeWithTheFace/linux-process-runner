@@ -128,6 +128,8 @@ func (jr *JobRunner) runJob(id string, cmd *exec.Cmd) error {
 		return err
 	}
 
+	defer lb.Close()
+
 	jr.store.UpdateRecordOutput(id, lb)
 
 	err = cmd.Start()
