@@ -28,7 +28,7 @@ func (suite *InMemoryJobStoreTestSuite) TestCreateRecord() {
 	}{
 		{"/bin/ls", []string{}, 123, STOPPED, nil},
 		{"/usr/bin/tail", []string{"-f", "log.txt"}, 789, CREATED, nil},
-		{"/bin/cp", []string{"file1", "file2"}, 456, ERROR, fmt.Errorf("File does not exist")},
+		{"/bin/cp", []string{"file1", "file2"}, 456, ERROR, fmt.Errorf("file does not exist")},
 	}
 
 	for _, tc := range cases {
@@ -63,7 +63,9 @@ func (suite *InMemoryJobStoreTestSuite) TestUpdateRecordState() {
 
 func (suite *InMemoryJobStoreTestSuite) TestUpdateRecordOutput() {
 	jobInfo := suite.store.CreateRecord("1", exec.Command("tail", "-f", "log.txt"), 789, CREATED, nil)
-	lb, _ := NewLogBuffer(jobInfo.Id)
+	lb, err := NewLogBuffer(jobInfo.Id)
+
+	assert.NoError(suite.T(), err, "a log buffer should not produce an error")
 	suite.store.UpdateRecordOutput(jobInfo.Id, lb)
 	assert.Equal(suite.T(), lb, jobInfo.Output)
 }
