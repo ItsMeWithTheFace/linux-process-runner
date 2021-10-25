@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"os/exec"
 	"sync"
 )
@@ -41,7 +40,7 @@ func (store *InMemoryJobStore) GetRecord(id string) (JobInfo, error) {
 	if jobInfo, ok := store.jobs[id]; ok {
 		return *jobInfo, nil
 	}
-	return JobInfo{}, fmt.Errorf("querying for record that does not exist")
+	return JobInfo{}, &ErrNotFound{}
 }
 
 // UpdateRecordOutput updates a job with an input/output stream to allow easy

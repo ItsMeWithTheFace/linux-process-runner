@@ -26,32 +26,34 @@ func (suite *JobTestSuite) TestStartJob() {
 
 	job, err := suite.jr.store.GetRecord("1")
 	assert.NoError(suite.T(), err, "getting should not throw an error")
-	assert.Equal(suite.T(), JobState(COMPLETED), job.State, "it should have completed")
+	assert.Equal(suite.T(), JobState(Completed), job.State, "it should have completed")
 }
 
 func (suite *JobTestSuite) TestStopJob() {
 	cmd := mockExecCommand("echo", "hello", "world")
-	job := suite.jr.store.CreateRecord("1", cmd, 1, JobState(CREATED), nil)
+	job := suite.jr.store.CreateRecord("1", cmd, 1, JobState(Created), nil)
 	cmd.Start()
 	suite.jr.StopJob(job.Id)
+	updatedJob, _ := suite.jr.store.GetRecord(job.Id)
 
-	assert.Equal(suite.T(), JobState(STOPPED), job.State, "it should have stopped")
+	assert.Equal(suite.T(), JobState(Stopped), updatedJob.State, "it should have stopped")
 }
 
 func (suite *JobTestSuite) TestStopUnstartedJob() {
 	cmd := mockExecCommand("echo", "hello", "world")
-	job := suite.jr.store.CreateRecord("1", cmd, 1, JobState(CREATED), nil)
+	job := suite.jr.store.CreateRecord("1", cmd, 1, JobState(Created), nil)
 
 	assert.Error(suite.T(), suite.jr.StopJob(job.Id), "it should error for unstarted job")
 }
 
 func (suite *JobTestSuite) TestRunJob() {
 	cmd := mockExecCommand("echo", "hello", "world")
-	job := suite.jr.store.CreateRecord("1", cmd, 1, JobState(CREATED), nil)
+	job := suite.jr.store.CreateRecord("1", cmd, 1, JobState(Created), nil)
 	suite.jr.runJob(job.Id, cmd)
 	assert.FileExists(suite.T(), fmt.Sprintf("/var/log/linux-process-runner/%s.log", job.Id), "it should create an output file")
 
-	lb := job.Output
+	updateJob, _ := suite.jr.store.GetRecord(job.Id)
+	lb := updateJob.Output
 	r, err := lb.NewReader()
 	assert.NoError(suite.T(), err, "getting stream should not produce an error")
 
