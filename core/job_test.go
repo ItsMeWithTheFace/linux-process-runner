@@ -22,9 +22,10 @@ func (suite *JobTestSuite) SetupTest() {
 func (suite *JobTestSuite) TestStartJob() {
 	cmd := mockExecCommand("echo", "hello", "world")
 	err := suite.jr.StartJob("1", cmd)
-	job, _ := suite.jr.store.GetRecord("1")
+	assert.NoError(suite.T(), err, "starting job should not throw an error")
 
-	assert.NoError(suite.T(), err, "it should not throw an error")
+	job, err := suite.jr.store.GetRecord("1")
+	assert.NoError(suite.T(), err, "getting should not throw an error")
 	assert.Equal(suite.T(), JobState(COMPLETED), job.State, "it should have completed")
 }
 
@@ -51,9 +52,13 @@ func (suite *JobTestSuite) TestRunJob() {
 	assert.FileExists(suite.T(), fmt.Sprintf("/var/log/linux-process-runner/%s.log", job.Id), "it should create an output file")
 
 	lb := job.Output
-	r, _ := lb.NewReader()
+	r, err := lb.NewReader()
+	assert.NoError(suite.T(), err, "getting stream should not produce an error")
+
 	b := make([]byte, 128)
-	n, _ := r.Read(b)
+	n, err := r.Read(b)
+	assert.NoError(suite.T(), err, "reading stream should not produce an error")
+
 	s := string(b[:n])
 	assert.Equal(suite.T(), "hello world", s, "log buffer should contain the same output as command")
 }
