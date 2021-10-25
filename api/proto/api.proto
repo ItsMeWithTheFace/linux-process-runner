@@ -39,9 +39,16 @@ message JobStreamOutput {
   bytes output = 1;
 }
 
+message JobStartOutput {
+  string id = 1;
+}
+
+message JobStopOutput {
+}
+
 service JobRunnerService {
-  rpc StartJob (JobStartRequest) returns (JobInfo);
-  rpc StopJob (JobStopRequest) returns (JobInfo);
+  rpc StartJob (JobStartRequest) returns (JobStartOutput);
+  rpc StopJob (JobStopRequest) returns (JobStopOutput);
   rpc GetJobInfo (JobQueryRequest) returns (JobInfo);
 
   rpc StreamJobOutput (JobQueryRequest) returns (stream JobStreamOutput);

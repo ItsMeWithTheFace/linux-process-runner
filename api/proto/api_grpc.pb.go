@@ -18,8 +18,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type JobRunnerServiceClient interface {
-	StartJob(ctx context.Context, in *JobStartRequest, opts ...grpc.CallOption) (*JobInfo, error)
-	StopJob(ctx context.Context, in *JobStopRequest, opts ...grpc.CallOption) (*JobInfo, error)
+	StartJob(ctx context.Context, in *JobStartRequest, opts ...grpc.CallOption) (*JobStartOutput, error)
+	StopJob(ctx context.Context, in *JobStopRequest, opts ...grpc.CallOption) (*JobStopOutput, error)
 	GetJobInfo(ctx context.Context, in *JobQueryRequest, opts ...grpc.CallOption) (*JobInfo, error)
 	StreamJobOutput(ctx context.Context, in *JobQueryRequest, opts ...grpc.CallOption) (JobRunnerService_StreamJobOutputClient, error)
 }
@@ -32,8 +32,8 @@ func NewJobRunnerServiceClient(cc grpc.ClientConnInterface) JobRunnerServiceClie
 	return &jobRunnerServiceClient{cc}
 }
 
-func (c *jobRunnerServiceClient) StartJob(ctx context.Context, in *JobStartRequest, opts ...grpc.CallOption) (*JobInfo, error) {
-	out := new(JobInfo)
+func (c *jobRunnerServiceClient) StartJob(ctx context.Context, in *JobStartRequest, opts ...grpc.CallOption) (*JobStartOutput, error) {
+	out := new(JobStartOutput)
 	err := c.cc.Invoke(ctx, "/JobRunnerService/StartJob", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -41,8 +41,8 @@ func (c *jobRunnerServiceClient) StartJob(ctx context.Context, in *JobStartReque
 	return out, nil
 }
 
-func (c *jobRunnerServiceClient) StopJob(ctx context.Context, in *JobStopRequest, opts ...grpc.CallOption) (*JobInfo, error) {
-	out := new(JobInfo)
+func (c *jobRunnerServiceClient) StopJob(ctx context.Context, in *JobStopRequest, opts ...grpc.CallOption) (*JobStopOutput, error) {
+	out := new(JobStopOutput)
 	err := c.cc.Invoke(ctx, "/JobRunnerService/StopJob", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -95,8 +95,8 @@ func (x *jobRunnerServiceStreamJobOutputClient) Recv() (*JobStreamOutput, error)
 // All implementations must embed UnimplementedJobRunnerServiceServer
 // for forward compatibility
 type JobRunnerServiceServer interface {
-	StartJob(context.Context, *JobStartRequest) (*JobInfo, error)
-	StopJob(context.Context, *JobStopRequest) (*JobInfo, error)
+	StartJob(context.Context, *JobStartRequest) (*JobStartOutput, error)
+	StopJob(context.Context, *JobStopRequest) (*JobStopOutput, error)
 	GetJobInfo(context.Context, *JobQueryRequest) (*JobInfo, error)
 	StreamJobOutput(*JobQueryRequest, JobRunnerService_StreamJobOutputServer) error
 	mustEmbedUnimplementedJobRunnerServiceServer()
@@ -106,10 +106,10 @@ type JobRunnerServiceServer interface {
 type UnimplementedJobRunnerServiceServer struct {
 }
 
-func (UnimplementedJobRunnerServiceServer) StartJob(context.Context, *JobStartRequest) (*JobInfo, error) {
+func (UnimplementedJobRunnerServiceServer) StartJob(context.Context, *JobStartRequest) (*JobStartOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method StartJob not implemented")
 }
-func (UnimplementedJobRunnerServiceServer) StopJob(context.Context, *JobStopRequest) (*JobInfo, error) {
+func (UnimplementedJobRunnerServiceServer) StopJob(context.Context, *JobStopRequest) (*JobStopOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method StopJob not implemented")
 }
 func (UnimplementedJobRunnerServiceServer) GetJobInfo(context.Context, *JobQueryRequest) (*JobInfo, error) {
