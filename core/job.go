@@ -26,7 +26,7 @@ type JobInfo struct {
 }
 
 type JobRunner struct {
-	store JobStore
+	store *InMemoryJobStore
 }
 
 type JobManager interface {
@@ -35,11 +35,11 @@ type JobManager interface {
 	GetJob(string) (*JobInfo, error)
 }
 
-func InitializeJobRunner(store JobStore) JobRunner {
-	return JobRunner{store}
+func InitializeJobRunner(store *InMemoryJobStore) *JobRunner {
+	return &JobRunner{store: store}
 }
 
-func (jr JobRunner) StartJob(id string, cmd *exec.Cmd) error {
+func (jr *JobRunner) StartJob(id string, cmd *exec.Cmd) error {
 	// TODO: replace with user's cert serial number
 	var user int32 = 1
 
@@ -58,7 +58,7 @@ func (jr JobRunner) StartJob(id string, cmd *exec.Cmd) error {
 	return nil
 }
 
-func (jr JobRunner) StopJob(id string) error {
+func (jr *JobRunner) StopJob(id string) error {
 	job, err := jr.store.GetRecord(id)
 
 	if err != nil {
@@ -82,11 +82,12 @@ func (jr JobRunner) StopJob(id string) error {
 	return nil
 }
 
-func (jr JobRunner) GetJob(id string) (*JobInfo, error) {
+func (jr *JobRunner) GetJob(id string) (*JobInfo, error) {
+	fmt.Println(id)
 	return jr.store.GetRecord(id)
 }
 
-func (jr JobRunner) runJob(id string, cmd *exec.Cmd) error {
+func (jr *JobRunner) runJob(id string, cmd *exec.Cmd) error {
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return err
