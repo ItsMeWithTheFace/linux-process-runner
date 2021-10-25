@@ -18,6 +18,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	var opts []grpc.ServerOption
+	// TODO: add TLS config
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterJobRunnerServiceServer(grpcServer, api.InitializeJobRunnerServer())
 	grpcServer.Serve(lis)
