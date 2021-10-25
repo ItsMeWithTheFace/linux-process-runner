@@ -24,8 +24,8 @@ func (suite *JobTestSuite) TestStartJob() {
 	err := suite.jr.StartJob("1", cmd)
 	job, _ := suite.jr.store.GetRecord("1")
 
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), JobState(COMPLETED), job.State)
+	assert.NoError(suite.T(), err, "it should not throw an error")
+	assert.Equal(suite.T(), JobState(COMPLETED), job.State, "it should have completed")
 }
 
 func (suite *JobTestSuite) TestStopJob() {
@@ -34,28 +34,28 @@ func (suite *JobTestSuite) TestStopJob() {
 	cmd.Start()
 	suite.jr.StopJob(job.Id)
 
-	assert.Equal(suite.T(), JobState(STOPPED), job.State)
+	assert.Equal(suite.T(), JobState(STOPPED), job.State, "it should have stopped")
 }
 
 func (suite *JobTestSuite) TestStopUnstartedJob() {
 	cmd := mockExecCommand("echo", "hello", "world")
 	job := suite.jr.store.CreateRecord("1", cmd, 1, JobState(CREATED), nil)
 
-	assert.Error(suite.T(), suite.jr.StopJob(job.Id))
+	assert.Error(suite.T(), suite.jr.StopJob(job.Id), "it should error for unstarted job")
 }
 
 func (suite *JobTestSuite) TestRunJob() {
 	cmd := mockExecCommand("echo", "hello", "world")
 	job := suite.jr.store.CreateRecord("1", cmd, 1, JobState(CREATED), nil)
 	suite.jr.runJob(job.Id, cmd)
-	assert.FileExists(suite.T(), fmt.Sprintf("/var/log/linux-process-runner/%s.log", job.Id))
+	assert.FileExists(suite.T(), fmt.Sprintf("/var/log/linux-process-runner/%s.log", job.Id), "it should create an output file")
 
 	lb := job.Output
 	r, _ := lb.NewReader()
 	b := make([]byte, 128)
 	n, _ := r.Read(b)
 	s := string(b[:n])
-	assert.Equal(suite.T(), "hello world", s)
+	assert.Equal(suite.T(), "hello world", s, "log buffer should contain the same output as command")
 }
 
 func TestJobTestSuite(t *testing.T) {
