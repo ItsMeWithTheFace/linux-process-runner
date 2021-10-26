@@ -5,63 +5,79 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
+	"os"
 
 	pb "github.com/ItsMeWithTheFace/linux-process-runner/api/proto"
 	"google.golang.org/grpc"
 )
 
+// Client implements the client-side gRPC functions.
 type Client struct {
 	pb.JobRunnerServiceClient
 }
 
-func (c *Client) handleArgs(args []string) {
+// handleArgs accepts command-line arguments and routes them to the appropriate handler.
+func (c *Client) handleArgs(args []string) error {
 	if len(args) < 1 {
-		fmt.Println("Please provide one of the following commands: [start, stop, get, stream]")
-		return
+		return fmt.Errorf("please provide one of the following commands: [start, stop, get, stream]")
 	}
+	// TODO: add some better argument handling
+	// TODO: pass in custom context containing TLS credentials
 	switch command := args[0]; command {
 	case "start":
-		c.handleStartJobCommand(context.Background(), args[1], args[2:])
+		return c.handleStartJobCommand(context.Background(), args[1], args[2:])
 	case "stop":
-		c.handleStopJobCommand(context.Background(), args[1])
+		return c.handleStopJobCommand(context.Background(), args[1])
 	case "get":
-		c.handleGetJobCommand(context.Background(), args[1])
+		return c.handleGetJobCommand(context.Background(), args[1])
 	case "stream":
-		c.handleStreamJobOutputCommand(context.Background(), args[1])
+		return c.handleStreamJobOutputCommand(context.Background(), args[1])
 	default:
-		fmt.Println("Please provide one of the following commands: [start, stop, get, stream]")
+		return fmt.Errorf("please provide one of the following commands: [start, stop, get, stream]")
 	}
 }
 
-func (c *Client) handleStartJobCommand(ctx context.Context, command string, args []string) {
-	fmt.Println("starting job")
+// handleStartJobCommand starts the job and returns the job ID.
+func (c *Client) handleStartJobCommand(ctx context.Context, command string, args []string) error {
 	out, err := c.JobRunnerServiceClient.StartJob(ctx, &pb.JobStartRequest{Command: command, Arguments: args})
 
 	if err != nil {
-		fmt.Print(err.Error())
+		return err
 	}
 
-	fmt.Println(out.GetId())
+	log.Printf("ID: %s", out.GetId())
+	return nil
 }
 
-func (c *Client) handleStopJobCommand(ctx context.Context, id string) {
+// handleStopJobCommand stops the job.
+func (c *Client) handleStopJobCommand(ctx context.Context, id string) error {
 	_, err := c.JobRunnerServiceClient.StopJob(ctx, &pb.JobStopRequest{Id: id})
 
 	if err != nil {
-		fmt.Print(err.Error())
+		return err
 	}
+
+	log.Printf("stopped job with ID: %s", id)
+
+	return nil
 }
 
-func (c *Client) handleGetJobCommand(ctx context.Context, id string) {
+// handleGetJobCommand retrieves a job's metadata.
+func (c *Client) handleGetJobCommand(ctx context.Context, id string) error {
 	job, err := c.JobRunnerServiceClient.GetJobInfo(ctx, &pb.JobQueryRequest{Id: id})
 
 	if err != nil {
-		fmt.Print(err.Error())
+		return err
 	}
-	fmt.Println(job)
+
+	log.Println(job)
+
+	return nil
 }
 
-func (c *Client) handleStreamJobOutputCommand(ctx context.Context, id string) {
+// handleStreamJobOutputCommand receives the streamed output of a job and prints it.
+func (c *Client) handleStreamJobOutputCommand(ctx context.Context, id string) error {
 	srv, err := c.JobRunnerServiceClient.StreamJobOutput(ctx, &pb.JobQueryRequest{Id: id})
 
 	if err != nil {
@@ -74,13 +90,12 @@ func (c *Client) handleStreamJobOutputCommand(ctx context.Context, id string) {
 		fmt.Print(string(in.GetOutput()))
 
 		if err == io.EOF {
-			fmt.Printf("finished reading stream")
-			return
+			log.Println("finished reading stream")
+			return nil
 		}
 
 		if err != nil {
-			fmt.Printf("stream: %s", err.Error())
-			return
+			return fmt.Errorf("stream: %s", err.Error())
 		}
 	}
 }
@@ -94,13 +109,19 @@ func main() {
 	conn, err := grpc.Dial("localhost:8080", grpc.WithInsecure())
 
 	if err != nil {
-		fmt.Printf(err.Error())
-		return
+		log.Printf("could not connect to host: %s", err.Error())
+		os.Exit(1)
 	}
 
 	client := &Client{
 		pb.NewJobRunnerServiceClient(conn),
 	}
 
-	client.handleArgs(flag.Args())
+	err = client.handleArgs(flag.Args())
+	if err != nil {
+		log.Fatalf("error handling command args: %s, err: %s", flag.Args(), err.Error())
+		os.Exit(1)
+	}
+
+	os.Exit(0)
 }
