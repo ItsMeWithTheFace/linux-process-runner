@@ -13,11 +13,13 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// JobRunnerServer implements the server-side gRPC functions.
 type JobRunnerServer struct {
 	pb.UnimplementedJobRunnerServiceServer
 	jr *c.JobRunner
 }
 
+// InitializeJobRunnerServer initializes the core functionality to start/stop/get jobs.
 func InitializeJobRunnerServer() *JobRunnerServer {
 	jr := c.InitializeJobRunner(c.InitializeInMemoryJobStore())
 	s := &JobRunnerServer{
@@ -26,6 +28,7 @@ func InitializeJobRunnerServer() *JobRunnerServer {
 	return s
 }
 
+// GetJobInfo retrieves a job's metadata.
 func (s *JobRunnerServer) GetJobInfo(ctx context.Context, req *pb.JobQueryRequest) (*pb.JobInfo, error) {
 	job, err := s.jr.GetJob(req.GetId())
 
@@ -48,6 +51,7 @@ func (s *JobRunnerServer) GetJobInfo(ctx context.Context, req *pb.JobQueryReques
 	return r, nil
 }
 
+// StartJob creates and runs a job and returns the generated job ID.
 func (s *JobRunnerServer) StartJob(ctx context.Context, req *pb.JobStartRequest) (*pb.JobStartOutput, error) {
 	id := uuid.NewString()
 	cmd := exec.Command(req.GetCommand(), req.GetArguments()...)
@@ -56,6 +60,7 @@ func (s *JobRunnerServer) StartJob(ctx context.Context, req *pb.JobStartRequest)
 	return &pb.JobStartOutput{Id: id}, nil
 }
 
+// StopJob attempts to kill a running job.
 func (s *JobRunnerServer) StopJob(ctx context.Context, req *pb.JobStopRequest) (*pb.JobStopOutput, error) {
 	err := s.jr.StopJob(req.GetId())
 
@@ -66,26 +71,23 @@ func (s *JobRunnerServer) StopJob(ctx context.Context, req *pb.JobStopRequest) (
 	return &pb.JobStopOutput{}, nil
 }
 
+// StreamJobOutput streams a given job's output from their associated log file regardless
+// of their state.
 func (s *JobRunnerServer) StreamJobOutput(req *pb.JobQueryRequest, srv pb.JobRunnerService_StreamJobOutputServer) error {
 	job, err := s.jr.GetJob(req.GetId())
 
 	if err != nil {
-		return status.Errorf(
-			codes.NotFound,
-			fmt.Sprintf("cannot find job with ID: %s. Err: %s", req.GetId(), err.Error()),
-		)
+		return handleError(req.GetId(), err)
 	}
 
 	r, err := job.Output.NewReader()
 	defer r.Close()
 
 	if err != nil {
-		return status.Errorf(
-			codes.Internal,
-			fmt.Sprintf("cannot get output of job with ID: %s. Err: %s", req.GetId(), err.Error()),
-		)
+		return handleError(job.Id, err)
 	}
 
+	// 16 KB buffer
 	buffer := make([]byte, 16*1000)
 	for {
 		n, err := r.Read(buffer)
@@ -97,17 +99,19 @@ func (s *JobRunnerServer) StreamJobOutput(req *pb.JobQueryRequest, srv pb.JobRun
 		resp := &pb.JobStreamOutput{Output: buffer[:n]}
 		err = srv.Send(resp)
 		if err != nil {
-			return status.Errorf(
-				codes.Internal,
-				fmt.Sprintf("error streaming output for job with ID: %s. Err: %s", req.GetId(), err.Error()),
-			)
+			return handleError(job.Id, err)
 		}
 
 		job, err = s.jr.GetJob(req.GetId())
+		if err != nil {
+			handleError(job.Id, err)
+		}
 	}
 }
 
+// handleError customizes returned error messages based on their type.
 func handleError(id string, err error) error {
+	// TODO: handle other error types and associate error codes with them
 	switch err.(type) {
 	case *c.ErrNotFound:
 		return status.Errorf(
