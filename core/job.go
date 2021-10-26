@@ -75,7 +75,7 @@ func (jr *JobRunner) StopJob(id string) error {
 		return fmt.Errorf("cannot stop a nil process")
 	}
 
-	if job.Cmd.ProcessState != nil || job.State > Running {
+	if job.State > Running {
 		return fmt.Errorf("cannot stop a job in a terminal state")
 	}
 
@@ -86,8 +86,11 @@ func (jr *JobRunner) StopJob(id string) error {
 		return err
 	}
 
-	jr.store.UpdateRecordState(job.Id, JobState(Stopped))
+	err = jr.store.UpdateRecordState(job.Id, JobState(Stopped))
 
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
