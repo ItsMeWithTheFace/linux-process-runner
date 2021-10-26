@@ -21,9 +21,14 @@ func (c *Client) handleArgs(args []string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("please provide one of the following commands: [start, stop, get, stream]")
 	}
+
 	// TODO: add some better argument handling
-	// TODO: pass in custom context containing TLS credentials
-	switch command := args[0]; command {
+	command := args[0]
+	if len(args) < 2 {
+		return fmt.Errorf("command %s does not have enough arguments", command)
+	}
+
+	switch command {
 	case "start":
 		return c.handleStartJobCommand(context.Background(), args[1], args[2:])
 	case "stop":
