@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"syscall"
 )
@@ -81,7 +82,7 @@ func (jr *JobRunner) StopJob(id string) error {
 
 	err = job.Cmd.Process.Kill()
 
-	if err != nil {
+	if err != nil && err != os.ErrProcessDone {
 		jr.store.UpdateRecordError(job.Id, err)
 		return err
 	}
