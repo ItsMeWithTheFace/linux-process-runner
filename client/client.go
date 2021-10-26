@@ -106,6 +106,7 @@ func main() {
 
 	flag.Parse()
 
+	// TODO: make localhost configurable, don't use insecure option
 	conn, err := grpc.Dial("localhost:8080", grpc.WithInsecure())
 
 	if err != nil {

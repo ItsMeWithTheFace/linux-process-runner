@@ -14,6 +14,7 @@ import (
 
 func main() {
 	flag.Parse()
+	// TODO: make address and port configurable
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", 8080))
 	if err != nil {
 		log.Printf("failed to listen: %v", err)
