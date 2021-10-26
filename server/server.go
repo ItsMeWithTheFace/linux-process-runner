@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"os"
 
 	"github.com/ItsMeWithTheFace/linux-process-runner/api"
 	pb "github.com/ItsMeWithTheFace/linux-process-runner/api/proto"
@@ -17,8 +16,7 @@ func main() {
 	// TODO: make address and port configurable
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", 8080))
 	if err != nil {
-		log.Printf("failed to listen: %v", err)
-		os.Exit(1)
+		log.Fatalf("failed to listen: %v", err)
 	}
 	// TODO: add TLS config
 	grpcServer := grpc.NewServer()
@@ -28,7 +26,6 @@ func main() {
 
 	err = grpcServer.Serve(lis)
 	if err != nil {
-		log.Printf("failed to serve: %v", err)
-		os.Exit(1)
+		log.Fatalf("failed to serve: %v", err)
 	}
 }

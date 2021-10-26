@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
 
 	pb "github.com/ItsMeWithTheFace/linux-process-runner/api/proto"
 	"google.golang.org/grpc"
@@ -110,8 +109,7 @@ func main() {
 	conn, err := grpc.Dial("localhost:8080", grpc.WithInsecure())
 
 	if err != nil {
-		log.Printf("could not connect to host: %s", err.Error())
-		os.Exit(1)
+		log.Fatalf("could not connect to host: %s", err.Error())
 	}
 
 	client := &Client{
@@ -121,8 +119,5 @@ func main() {
 	err = client.handleArgs(flag.Args())
 	if err != nil {
 		log.Fatalf("error handling command args: %s, err: %s", flag.Args(), err.Error())
-		os.Exit(1)
 	}
-
-	os.Exit(0)
 }
