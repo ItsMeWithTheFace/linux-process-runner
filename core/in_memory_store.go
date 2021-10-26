@@ -52,10 +52,14 @@ func (store *InMemoryJobStore) UpdateRecordOutput(id string, logBuffer LogBuffer
 }
 
 // UpdateRecordState updates a job's current state.
-func (store *InMemoryJobStore) UpdateRecordState(id string, newState JobState) {
+func (store *InMemoryJobStore) UpdateRecordState(id string, newState JobState) error {
 	store.mu.Lock()
 	defer store.mu.Unlock()
+	if store.jobs[id].State > Running {
+		return &ErrIllegalStateChange{}
+	}
 	store.jobs[id].State = newState
+	return nil
 }
 
 // UpdateRecordError populates a job's error field if it encountered an error

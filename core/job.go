@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
-	"sync"
 	"syscall"
 )
 
@@ -36,12 +35,11 @@ type JobInfo struct {
 // JobRunner handles starting, stopping and getting jobs.
 type JobRunner struct {
 	store *InMemoryJobStore
-	mu    *sync.RWMutex
 }
 
 // InitializeJobRunner creates a pointer to an instantiated JobRunner.
 func InitializeJobRunner(store *InMemoryJobStore) *JobRunner {
-	return &JobRunner{store: store, mu: &sync.RWMutex{}}
+	return &JobRunner{store: store}
 }
 
 // StartJob creates and runs a new job.
@@ -54,14 +52,11 @@ func (jr *JobRunner) StartJob(id string, cmd *exec.Cmd) error {
 	err := jr.runJob(job.Id, cmd)
 
 	if err != nil && !isKilled(err) {
-		jr.mu.Lock()
-		defer jr.mu.Unlock()
 		jr.store.UpdateRecordError(job.Id, err)
 		return err
 	}
 
-	job, err = jr.store.GetRecord(job.Id)
-	if job.State <= Running {
+	if job.Cmd.ProcessState.Success() {
 		jr.store.UpdateRecordState(job.Id, JobState(Completed))
 	}
 
@@ -87,22 +82,20 @@ func (jr *JobRunner) StopJob(id string) error {
 	err = job.Cmd.Process.Kill()
 
 	if err != nil {
-		jr.mu.Lock()
-		defer jr.mu.Unlock()
 		jr.store.UpdateRecordError(job.Id, err)
 		return err
 	}
 
-	jr.store.UpdateRecordState(job.Id, JobState(Stopped))
+	err = jr.store.UpdateRecordState(job.Id, JobState(Stopped))
 
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 // GetJob retrieves an existing job from storage.
 func (jr *JobRunner) GetJob(id string) (JobInfo, error) {
-	jr.mu.RLock()
-	defer jr.mu.RUnlock()
-	fmt.Println(id)
 	return jr.store.GetRecord(id)
 }
 
@@ -146,6 +139,8 @@ func (jr *JobRunner) runJob(id string, cmd *exec.Cmd) error {
 	return cmd.Wait()
 }
 
+// isKilled checks if a command exited via a SIGKILL signal by
+// checking its Wait() status.
 func isKilled(err error) bool {
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		if waitStatus, ok := exitErr.Sys().(syscall.WaitStatus); ok {

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -39,6 +40,22 @@ func (suite *JobTestSuite) TestStopJob() {
 	assert.Equal(suite.T(), JobState(Stopped), updatedJob.State, "it should have stopped")
 }
 
+func (suite *JobTestSuite) TestStopLongJob() {
+	cmd := mockExecCommand("sleep")
+
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- suite.jr.StartJob("1", cmd)
+	}()
+	for job, _ := suite.jr.store.GetRecord("1"); job.State == JobState(Created); job, _ = suite.jr.store.GetRecord("1") {
+	}
+	err := suite.jr.StopJob("1")
+	<-errChan
+	assert.NoError(suite.T(), err)
+	updatedJob, _ := suite.jr.store.GetRecord("1")
+	assert.Equal(suite.T(), JobState(Stopped), updatedJob.State, "it should have stopped")
+}
+
 func (suite *JobTestSuite) TestStopUnstartedJob() {
 	cmd := mockExecCommand("echo", "hello", "world")
 	job := suite.jr.store.CreateRecord("1", cmd, 1, JobState(Created), nil)
@@ -69,21 +86,31 @@ func TestJobTestSuite(t *testing.T) {
 	suite.Run(t, new(JobTestSuite))
 }
 
-func TestHelper(t *testing.T) {
-	if os.Getenv("GO_TEST_PROCESS") != "1" {
-		return
+func TestCommand(t *testing.T) {
+	if os.Getenv("GO_TEST_PROCESS") == "1" {
+		fmt.Print("hello world")
+		os.Exit(0)
+	} else if os.Getenv("GO_TEST_PROCESS") == "2" {
+		time.Sleep(10 * time.Second)
+		os.Exit(0)
 	}
-
-	defer os.Exit(0)
-	fmt.Print("hello world")
+	return
 }
 
 // mockExecCommand returns a mock command that calls a helper function.
 // Based off exec_test.go from the os/exec library.
 func mockExecCommand(command string, args ...string) *exec.Cmd {
-	cs := []string{"-test.run=TestHelper", "--", command}
+	cs := []string{"-test.run=TestCommand", "--", command}
 	cs = append(cs, args...)
 	cmd := exec.Command(os.Args[0], cs...)
-	cmd.Env = []string{"GO_TEST_PROCESS=1"}
+	switch command {
+	default:
+		fallthrough
+	case "echo":
+		cmd.Env = []string{"GO_TEST_PROCESS=1"}
+	case "sleep":
+		cmd.Env = []string{"GO_TEST_PROCESS=2"}
+	}
+
 	return cmd
 }
