@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
 
 	pb "github.com/ItsMeWithTheFace/linux-process-runner/api/proto"
 	"github.com/ItsMeWithTheFace/linux-process-runner/auth"
@@ -23,9 +22,14 @@ func (c *Client) handleArgs(args []string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("please provide one of the following commands: [start, stop, get, stream]")
 	}
+
 	// TODO: add some better argument handling
-	// TODO: pass in custom context containing TLS credentials
-	switch command := args[0]; command {
+	command := args[0]
+	if len(args) < 2 {
+		return fmt.Errorf("command %s does not have enough arguments", command)
+	}
+
+	switch command {
 	case "start":
 		return c.handleStartJobCommand(context.Background(), args[1], args[2:])
 	case "stop":
@@ -91,7 +95,6 @@ func (c *Client) handleStreamJobOutputCommand(ctx context.Context, id string) er
 		fmt.Print(string(in.GetOutput()))
 
 		if err == io.EOF {
-			log.Println("finished reading stream")
 			return nil
 		}
 
@@ -115,8 +118,7 @@ func main() {
 	conn, err := grpc.Dial("0.0.0.0:8080", grpc.WithTransportCredentials(tlsCreds))
 
 	if err != nil {
-		log.Printf("could not connect to host: %s", err.Error())
-		os.Exit(1)
+		log.Fatalf("could not connect to host: %s", err.Error())
 	}
 
 	client := &Client{
@@ -126,8 +128,5 @@ func main() {
 	err = client.handleArgs(flag.Args())
 	if err != nil {
 		log.Fatalf("error handling command args: %s, err: %s", flag.Args(), err.Error())
-		os.Exit(1)
 	}
-
-	os.Exit(0)
 }
