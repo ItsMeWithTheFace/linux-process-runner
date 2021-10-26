@@ -57,7 +57,8 @@ func (suite *InMemoryJobStoreTestSuite) TestGetNonExistentRecord() {
 
 func (suite *InMemoryJobStoreTestSuite) TestUpdateRecordState() {
 	jobInfo := suite.store.CreateRecord("1", exec.Command("tail", "-f", "log.txt"), 789, Created, nil)
-	suite.store.UpdateRecordState(jobInfo.Id, Stopped)
+	err := suite.store.UpdateRecordState(jobInfo.Id, Stopped)
+	assert.NoError(suite.T(), err, "it should be a valid state change")
 	updatedJobInfo, _ := suite.store.GetRecord(jobInfo.Id)
 	assert.Equal(suite.T(), JobState(Stopped), updatedJobInfo.State)
 }
