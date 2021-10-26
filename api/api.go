@@ -101,10 +101,13 @@ func (s *JobRunnerServer) StreamJobOutput(req *pb.JobQueryRequest, srv pb.JobRun
 				return nil
 			}
 
-			resp := &pb.JobStreamOutput{Output: buffer[:n]}
-			err = srv.Send(resp)
-			if err != nil {
-				return handleError(job.Id, err)
+			shouldSkip := err == io.EOF && job.State <= c.Running
+			if !shouldSkip {
+				resp := &pb.JobStreamOutput{Output: buffer[:n]}
+				err = srv.Send(resp)
+				if err != nil {
+					return handleError(job.Id, err)
+				}
 			}
 
 			job, err = s.jr.GetJob(req.GetId())
