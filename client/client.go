@@ -94,7 +94,6 @@ func (c *Client) handleStreamJobOutputCommand(ctx context.Context, id string) er
 		fmt.Print(string(in.GetOutput()))
 
 		if err == io.EOF {
-			log.Println("finished reading stream")
 			return nil
 		}
 
