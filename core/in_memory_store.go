@@ -1,6 +1,7 @@
 package core
 
 import (
+	"math/big"
 	"os/exec"
 	"sync"
 )
@@ -20,7 +21,7 @@ func InitializeInMemoryJobStore() *InMemoryJobStore {
 }
 
 // CreateRecord inserts a new record of a job instance.
-func (store *InMemoryJobStore) CreateRecord(id string, cmd *exec.Cmd, owner int32, state JobState, jobError error) JobInfo {
+func (store *InMemoryJobStore) CreateRecord(id string, cmd *exec.Cmd, owner *big.Int, state JobState, jobError error) JobInfo {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	store.jobs[id] = &JobInfo{

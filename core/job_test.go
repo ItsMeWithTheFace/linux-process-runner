@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"math/big"
 	"os"
 	"os/exec"
 	"testing"
@@ -22,7 +23,7 @@ func (suite *JobTestSuite) SetupTest() {
 
 func (suite *JobTestSuite) TestStartJob() {
 	cmd := mockExecCommand("echo", "hello", "world")
-	err := suite.jr.StartJob("1", cmd)
+	err := suite.jr.StartJob("1", big.NewInt(123), cmd)
 	assert.NoError(suite.T(), err, "starting job should not throw an error")
 
 	job, err := suite.jr.store.GetRecord("1")
@@ -32,7 +33,7 @@ func (suite *JobTestSuite) TestStartJob() {
 
 func (suite *JobTestSuite) TestStopJob() {
 	cmd := mockExecCommand("echo", "hello", "world")
-	job := suite.jr.store.CreateRecord("1", cmd, 1, JobState(Created), nil)
+	job := suite.jr.store.CreateRecord("1", cmd, big.NewInt(123), JobState(Created), nil)
 	cmd.Start()
 	suite.jr.StopJob(job.Id)
 	updatedJob, _ := suite.jr.store.GetRecord(job.Id)
@@ -45,7 +46,7 @@ func (suite *JobTestSuite) TestStopLongJob() {
 
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- suite.jr.StartJob("1", cmd)
+		errChan <- suite.jr.StartJob("1", big.NewInt(123), cmd)
 	}()
 	for job, _ := suite.jr.store.GetRecord("1"); job.State == JobState(Created); job, _ = suite.jr.store.GetRecord("1") {
 	}
@@ -58,14 +59,14 @@ func (suite *JobTestSuite) TestStopLongJob() {
 
 func (suite *JobTestSuite) TestStopUnstartedJob() {
 	cmd := mockExecCommand("echo", "hello", "world")
-	job := suite.jr.store.CreateRecord("1", cmd, 1, JobState(Created), nil)
+	job := suite.jr.store.CreateRecord("1", cmd, big.NewInt(1), JobState(Created), nil)
 
 	assert.Error(suite.T(), suite.jr.StopJob(job.Id), "it should error for unstarted job")
 }
 
 func (suite *JobTestSuite) TestRunJob() {
 	cmd := mockExecCommand("echo", "hello", "world")
-	job := suite.jr.store.CreateRecord("1", cmd, 1, JobState(Created), nil)
+	job := suite.jr.store.CreateRecord("1", cmd, big.NewInt(1), JobState(Created), nil)
 	suite.jr.runJob(job.Id, cmd)
 	assert.FileExists(suite.T(), fmt.Sprintf("/var/log/linux-process-runner/%s.log", job.Id), "it should create an output file")
 

@@ -15,11 +15,9 @@ message JobInfo {
   string command = 2;
   repeated string arguments = 3;
   
-  int32 owner = 4;
+  JobState state = 4;
 
-  JobState state = 5;
-
-  string error = 6;
+  string error = 5;
 }
 
 message JobStartRequest {

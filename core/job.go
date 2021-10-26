@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"io"
+	"math/big"
 	"os"
 	"os/exec"
 	"syscall"
@@ -28,7 +29,7 @@ type JobInfo struct {
 	Id     string
 	Cmd    *exec.Cmd
 	Output LogBuffer
-	Owner  int32
+	Owner  *big.Int
 	State  JobState
 	Err    error
 }
@@ -44,11 +45,9 @@ func InitializeJobRunner(store *InMemoryJobStore) *JobRunner {
 }
 
 // StartJob creates and runs a new job.
-func (jr *JobRunner) StartJob(id string, cmd *exec.Cmd) error {
-	// TODO: replace with user's cert serial number
-	var user int32 = 1
+func (jr *JobRunner) StartJob(id string, owner *big.Int, cmd *exec.Cmd) error {
 
-	job := jr.store.CreateRecord(id, cmd, user, JobState(Created), nil)
+	job := jr.store.CreateRecord(id, cmd, owner, JobState(Created), nil)
 
 	err := jr.runJob(job.Id, cmd)
 

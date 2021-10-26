@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math/big"
 	"os/exec"
 
 	pb "github.com/ItsMeWithTheFace/linux-process-runner/api/proto"
+	"github.com/ItsMeWithTheFace/linux-process-runner/auth"
 	c "github.com/ItsMeWithTheFace/linux-process-runner/core"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -40,7 +42,6 @@ func (s *JobRunnerServer) GetJobInfo(ctx context.Context, req *pb.JobQueryReques
 		Id:        job.Id,
 		Command:   job.Cmd.Args[0],
 		Arguments: job.Cmd.Args[1:],
-		Owner:     job.Owner,
 		State:     pb.JobState(job.State),
 	}
 
@@ -55,14 +56,30 @@ func (s *JobRunnerServer) GetJobInfo(ctx context.Context, req *pb.JobQueryReques
 func (s *JobRunnerServer) StartJob(ctx context.Context, req *pb.JobStartRequest) (*pb.JobStartOutput, error) {
 	id := uuid.NewString()
 	cmd := exec.Command(req.GetCommand(), req.GetArguments()...)
-	go s.jr.StartJob(id, cmd)
+	owner, err := getClientID(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	go s.jr.StartJob(id, owner, cmd)
 
 	return &pb.JobStartOutput{Id: id}, nil
 }
 
 // StopJob attempts to kill a running job.
 func (s *JobRunnerServer) StopJob(ctx context.Context, req *pb.JobStopRequest) (*pb.JobStopOutput, error) {
-	err := s.jr.StopJob(req.GetId())
+	job, err := s.jr.GetJob(req.GetId())
+
+	if err != nil {
+		return nil, handleError(req.GetId(), err)
+	}
+
+	if err = verifyJobOwnership(ctx, job.Owner); err != nil {
+		return nil, err
+	}
+
+	err = s.jr.StopJob(req.GetId())
 
 	if err != nil {
 		return nil, handleError(req.GetId(), err)
@@ -78,6 +95,10 @@ func (s *JobRunnerServer) StreamJobOutput(req *pb.JobQueryRequest, srv pb.JobRun
 
 	if err != nil {
 		return handleError(req.GetId(), err)
+	}
+
+	if err = verifyJobOwnership(srv.Context(), job.Owner); err != nil {
+		return err
 	}
 
 	r, err := job.Output.NewReader()
@@ -124,4 +145,28 @@ func handleError(id string, err error) error {
 			fmt.Sprintf("error for job: %s Err: %s", id, err.Error()),
 		)
 	}
+}
+
+func verifyJobOwnership(ctx context.Context, owner *big.Int) error {
+	o, err := getClientID(ctx)
+
+	if err != nil {
+		return err
+	}
+
+	if o.Cmp(owner) != 0 {
+		return status.Errorf(
+			codes.PermissionDenied,
+			fmt.Sprint("user not permitted to stream job"),
+		)
+	}
+
+	return nil
+}
+
+func getClientID(ctx context.Context) (*big.Int, error) {
+	if o, ok := ctx.Value(auth.ClientIDKey).(*big.Int); ok {
+		return o, nil
+	}
+	return nil, status.Error(codes.Internal, "cannot find owner")
 }
