@@ -111,7 +111,8 @@ func (s *JobRunnerServer) StreamJobOutput(req *pb.JobQueryRequest, srv pb.JobRun
 			}
 
 			// TODO: change GetJob to return a pointer with privatized fields
-			// and Get functions so we avoid querying constantly
+			// and Get functions so we avoid querying constantly while maintaining
+			// read-only on c.JobInfo
 			job, err = s.jr.GetJob(req.GetId())
 			if err != nil {
 				handleError(job.Id, err)
