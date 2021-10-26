@@ -9,6 +9,7 @@ import (
 	"os"
 
 	pb "github.com/ItsMeWithTheFace/linux-process-runner/api/proto"
+	"github.com/ItsMeWithTheFace/linux-process-runner/auth"
 	"google.golang.org/grpc"
 )
 
@@ -101,13 +102,17 @@ func (c *Client) handleStreamJobOutputCommand(ctx context.Context, id string) er
 }
 
 func main() {
-	// TODO: add TLS credentials
 	// TODO: add cert and cert-key flags
 
 	flag.Parse()
 
-	// TODO: make localhost configurable, don't use insecure option
-	conn, err := grpc.Dial("localhost:8080", grpc.WithInsecure())
+	tlsCreds, err := auth.GetClientTlsCredentials("certs/client.pem", "certs/client.key", "certs/ca.pem")
+	if err != nil {
+		log.Printf("could not load tls creds: %s", err.Error())
+		os.Exit(1)
+	}
+
+	conn, err := grpc.Dial("0.0.0.0:8080", grpc.WithTransportCredentials(tlsCreds))
 
 	if err != nil {
 		log.Printf("could not connect to host: %s", err.Error())
