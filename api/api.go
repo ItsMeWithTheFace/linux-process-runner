@@ -89,22 +89,28 @@ func (s *JobRunnerServer) StreamJobOutput(req *pb.JobQueryRequest, srv pb.JobRun
 
 	// 16 KB buffer
 	buffer := make([]byte, 16*1000)
+
 	for {
-		n, err := r.Read(buffer)
+		select {
+		case <-srv.Context().Done():
+			return srv.Context().Err()
+		default:
+			n, err := r.Read(buffer)
 
-		if n == 0 && err == io.EOF && job.State > c.Running {
-			return nil
-		}
+			if n == 0 && err == io.EOF && job.State > c.Running {
+				return nil
+			}
 
-		resp := &pb.JobStreamOutput{Output: buffer[:n]}
-		err = srv.Send(resp)
-		if err != nil {
-			return handleError(job.Id, err)
-		}
+			resp := &pb.JobStreamOutput{Output: buffer[:n]}
+			err = srv.Send(resp)
+			if err != nil {
+				return handleError(job.Id, err)
+			}
 
-		job, err = s.jr.GetJob(req.GetId())
-		if err != nil {
-			handleError(job.Id, err)
+			job, err = s.jr.GetJob(req.GetId())
+			if err != nil {
+				handleError(job.Id, err)
+			}
 		}
 	}
 }
