@@ -23,7 +23,7 @@ func GetServerTlsCredentials(certPath string, certKeyPath string, caCertPath str
 
 	certPool := x509.NewCertPool()
 	if !certPool.AppendCertsFromPEM(caCert) {
-		return nil, fmt.Errorf("failed to add client CA's certificate")
+		return nil, fmt.Errorf("failed to add server CA's certificate")
 	}
 
 	config := &tls.Config{
@@ -50,7 +50,7 @@ func GetClientTlsCredentials(certPath string, certKeyPath string, caCertPath str
 
 	certPool := x509.NewCertPool()
 	if !certPool.AppendCertsFromPEM(caCert) {
-		return nil, fmt.Errorf("failed to add server CA's certificate")
+		return nil, fmt.Errorf("failed to add client CA's certificate")
 	}
 
 	clientCert, err := tls.LoadX509KeyPair(certPath, certKeyPath)
