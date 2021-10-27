@@ -3,34 +3,13 @@ package auth
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/pem"
-	"errors"
 	"fmt"
 	"io/ioutil"
 
 	"google.golang.org/grpc/credentials"
 )
 
-func GetCaCert(caCertPath string) (*x509.Certificate, error) {
-
-	caCert, err := ioutil.ReadFile(caCertPath)
-	if err != nil {
-		return nil, err
-	}
-
-	cb, _ := pem.Decode(caCert)
-	if cb == nil {
-		return nil, errors.New("issue with reading CA certificate")
-	}
-
-	crt, err := x509.ParseCertificate(cb.Bytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return crt, nil
-}
-
+// GetServerTlsCredentials creates an appropriate TLS configuration for server-side use.
 func GetServerTlsCredentials(certPath string, certKeyPath string, caCertPath string) (credentials.TransportCredentials, error) {
 	serverCert, err := tls.LoadX509KeyPair(certPath, certKeyPath)
 	if err != nil {
@@ -62,6 +41,7 @@ func GetServerTlsCredentials(certPath string, certKeyPath string, caCertPath str
 	return credentials.NewTLS(config), nil
 }
 
+// GetClientTlsCredentials creates an appropriate TLS configuration for client-side use.
 func GetClientTlsCredentials(certPath string, certKeyPath string, caCertPath string) (credentials.TransportCredentials, error) {
 	caCert, err := ioutil.ReadFile(caCertPath)
 	if err != nil {
