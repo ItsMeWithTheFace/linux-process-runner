@@ -169,7 +169,7 @@ func verifyJobOwnership(ctx context.Context, owner *big.Int) error {
 	if o.Cmp(owner) != 0 {
 		return status.Errorf(
 			codes.PermissionDenied,
-			fmt.Sprint("user not permitted to stream job"),
+			fmt.Sprint("user does not own this job"),
 		)
 	}
 
