@@ -6,7 +6,7 @@ import (
 
 	pb "github.com/ItsMeWithTheFace/linux-process-runner/api/proto"
 	"github.com/ItsMeWithTheFace/linux-process-runner/auth"
-	"github.com/ItsMeWithTheFace/linux-process-runner/client"
+	"github.com/ItsMeWithTheFace/linux-process-runner/handlers"
 	"google.golang.org/grpc"
 )
 
@@ -29,7 +29,7 @@ func main() {
 		log.Fatalf("could not connect to host: %s", err.Error())
 	}
 
-	client := &client.Client{
+	client := &handlers.Client{
 		JobRunnerServiceClient: pb.NewJobRunnerServiceClient(conn),
 	}
 

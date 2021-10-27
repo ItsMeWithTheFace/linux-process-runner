@@ -8,7 +8,7 @@ import (
 
 	pb "github.com/ItsMeWithTheFace/linux-process-runner/api/proto"
 	"github.com/ItsMeWithTheFace/linux-process-runner/auth"
-	"github.com/ItsMeWithTheFace/linux-process-runner/client"
+	"github.com/ItsMeWithTheFace/linux-process-runner/handlers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc"
@@ -44,7 +44,7 @@ func (suite *TlsAuthTestSuite) TestSuccessfulMtlsConnection() {
 	defer conn.Close()
 	defer s.Stop()
 
-	c := client.Client{
+	c := handlers.Client{
 		JobRunnerServiceClient: pb.NewJobRunnerServiceClient(conn),
 	}
 
@@ -71,7 +71,7 @@ func (suite *TlsAuthTestSuite) TestUnsuccessfulMtlsConnection() {
 	defer conn.Close()
 	defer s.Stop()
 
-	c := client.Client{
+	c := handlers.Client{
 		JobRunnerServiceClient: pb.NewJobRunnerServiceClient(conn),
 	}
 
