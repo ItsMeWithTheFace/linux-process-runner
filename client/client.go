@@ -105,15 +105,18 @@ func (c *Client) handleStreamJobOutputCommand(ctx context.Context, id string) er
 }
 
 func main() {
-	// TODO: add cert and cert-key flags
+	cert := flag.String("cert", "certs/client.pem", "path to the client cert's public key")
+	certKey := flag.String("cert-key", "certs/client.key", "path to the client cert's private key")
+	caCert := flag.String("ca-cert", "certs/ca.pem", "path to the CA's public key")
 
 	flag.Parse()
 
-	tlsCreds, err := auth.GetClientTlsCredentials("certs/client.pem", "certs/client.key", "certs/ca.pem")
+	tlsCreds, err := auth.GetClientTlsCredentials(*cert, *certKey, *caCert)
 	if err != nil {
 		log.Fatalf("could not load tls creds: %s", err.Error())
 	}
 
+	// TODO: use configurable server address and port
 	conn, err := grpc.Dial("0.0.0.0:8080", grpc.WithTransportCredentials(tlsCreds))
 
 	if err != nil {

@@ -20,6 +20,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
+	// TODO: pull server certs from configurable, secure storage
 	tlsCreds, err := auth.GetServerTlsCredentials("certs/server.pem", "certs/server.key", "certs/ca.pem")
 	if err != nil {
 		log.Fatalf("failed to load tls creds: %v", err)
