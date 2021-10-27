@@ -62,7 +62,9 @@ func (s *JobRunnerServer) StartJob(ctx context.Context, req *pb.JobStartRequest)
 		return nil, err
 	}
 
-	go s.jr.StartJob(id, owner, cmd)
+	job := s.jr.CreateJob(id, owner, cmd)
+
+	go s.jr.StartJob(job)
 
 	return &pb.JobStartOutput{Id: id}, nil
 }

@@ -23,10 +23,11 @@ func (suite *JobTestSuite) SetupTest() {
 
 func (suite *JobTestSuite) TestStartJob() {
 	cmd := mockExecCommand("echo", "hello", "world")
-	err := suite.jr.StartJob("1", big.NewInt(123), cmd)
+	job := suite.jr.CreateJob("1", big.NewInt(123), cmd)
+	err := suite.jr.StartJob(job)
 	assert.NoError(suite.T(), err, "starting job should not throw an error")
 
-	job, err := suite.jr.store.GetRecord("1")
+	job, err = suite.jr.store.GetRecord("1")
 	assert.NoError(suite.T(), err, "getting should not throw an error")
 	assert.Equal(suite.T(), JobState(Completed), job.State, "it should have completed")
 }
@@ -45,8 +46,9 @@ func (suite *JobTestSuite) TestStopLongJob() {
 	cmd := mockExecCommand("sleep")
 
 	errChan := make(chan error, 1)
+	job := suite.jr.CreateJob("1", big.NewInt(123), cmd)
 	go func() {
-		errChan <- suite.jr.StartJob("1", big.NewInt(123), cmd)
+		errChan <- suite.jr.StartJob(job)
 	}()
 	for job, _ := suite.jr.store.GetRecord("1"); job.State == JobState(Created); job, _ = suite.jr.store.GetRecord("1") {
 	}

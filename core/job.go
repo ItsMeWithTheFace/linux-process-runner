@@ -44,12 +44,14 @@ func InitializeJobRunner(store *InMemoryJobStore) *JobRunner {
 	return &JobRunner{store: store}
 }
 
-// StartJob creates and runs a new job.
-func (jr *JobRunner) StartJob(id string, owner *big.Int, cmd *exec.Cmd) error {
+// CreateJob creates a new job and stores it in memory.
+func (jr *JobRunner) CreateJob(id string, owner *big.Int, cmd *exec.Cmd) JobInfo {
+	return jr.store.CreateRecord(id, cmd, owner, JobState(Created), nil)
+}
 
-	job := jr.store.CreateRecord(id, cmd, owner, JobState(Created), nil)
-
-	err := jr.runJob(job.Id, cmd)
+// StartJob runs a job.
+func (jr *JobRunner) StartJob(job JobInfo) error {
+	err := jr.runJob(job.Id, job.Cmd)
 
 	if err != nil && !isKilled(err) {
 		jr.store.UpdateRecordError(job.Id, err)
