@@ -69,7 +69,8 @@ func (suite *JobTestSuite) TestStopUnstartedJob() {
 func (suite *JobTestSuite) TestRunJob() {
 	cmd := mockExecCommand("echo", "hello", "world")
 	job := suite.jr.store.CreateRecord("1", cmd, big.NewInt(1), JobState(Created), nil)
-	suite.jr.runJob(job.Id, cmd)
+	err := suite.jr.runJob(job.Id, cmd)
+	assert.NoError(suite.T(), err, "running job should not error")
 	assert.FileExists(suite.T(), fmt.Sprintf("/var/log/linux-process-runner/%s.log", job.Id), "it should create an output file")
 
 	updateJob, _ := suite.jr.store.GetRecord(job.Id)
