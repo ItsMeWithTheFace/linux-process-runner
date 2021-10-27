@@ -161,6 +161,7 @@ func handleError(id string, err error) error {
 	}
 }
 
+// verifyJobOwnership compares owner IDs to see if they match.
 func verifyJobOwnership(ctx context.Context, owner *big.Int) error {
 	o, err := getClientID(ctx)
 
@@ -178,6 +179,7 @@ func verifyJobOwnership(ctx context.Context, owner *big.Int) error {
 	return nil
 }
 
+// getClientID parses a client-side ID so it can be safely tested for job ownership.
 func getClientID(ctx context.Context) (*big.Int, error) {
 	if o, ok := ctx.Value(auth.ClientIDKey).(*big.Int); ok {
 		return o, nil
