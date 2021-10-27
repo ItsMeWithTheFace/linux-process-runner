@@ -111,8 +111,7 @@ func main() {
 
 	tlsCreds, err := auth.GetClientTlsCredentials("certs/client.pem", "certs/client.key", "certs/ca.pem")
 	if err != nil {
-		log.Printf("could not load tls creds: %s", err.Error())
-		os.Exit(1)
+		log.Fatalf("could not load tls creds: %s", err.Error())
 	}
 
 	conn, err := grpc.Dial("0.0.0.0:8080", grpc.WithTransportCredentials(tlsCreds))

@@ -22,8 +22,7 @@ func main() {
 
 	tlsCreds, err := auth.GetServerTlsCredentials("certs/server.pem", "certs/server.key", "certs/ca.pem")
 	if err != nil {
-		log.Printf("failed to load tls creds: %v", err)
-		os.Exit(1)
+		log.Fatalf("failed to load tls creds: %v", err)
 	}
 
 	grpcServer := grpc.NewServer(
