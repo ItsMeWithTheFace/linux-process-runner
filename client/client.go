@@ -1,15 +1,12 @@
-package main
+package client
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"io"
 	"log"
 
 	pb "github.com/ItsMeWithTheFace/linux-process-runner/api/proto"
-	"github.com/ItsMeWithTheFace/linux-process-runner/auth"
-	"google.golang.org/grpc"
 )
 
 // Client implements the client-side gRPC functions.
@@ -17,8 +14,8 @@ type Client struct {
 	pb.JobRunnerServiceClient
 }
 
-// handleArgs accepts command-line arguments and routes them to the appropriate handler.
-func (c *Client) handleArgs(args []string) error {
+// HandleArgs accepts command-line arguments and routes them to the appropriate handler.
+func (c *Client) HandleArgs(args []string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("please provide one of the following commands: [start, stop, get, stream]")
 	}
@@ -31,20 +28,20 @@ func (c *Client) handleArgs(args []string) error {
 
 	switch command {
 	case "start":
-		return c.handleStartJobCommand(context.Background(), args[1], args[2:])
+		return c.HandleStartJobCommand(context.Background(), args[1], args[2:])
 	case "stop":
-		return c.handleStopJobCommand(context.Background(), args[1])
+		return c.HandleStopJobCommand(context.Background(), args[1])
 	case "get":
-		return c.handleGetJobCommand(context.Background(), args[1])
+		return c.HandleGetJobCommand(context.Background(), args[1])
 	case "stream":
-		return c.handleStreamJobOutputCommand(context.Background(), args[1])
+		return c.HandleStreamJobOutputCommand(context.Background(), args[1])
 	default:
 		return fmt.Errorf("please provide one of the following commands: [start, stop, get, stream]")
 	}
 }
 
-// handleStartJobCommand starts the job and returns the job ID.
-func (c *Client) handleStartJobCommand(ctx context.Context, command string, args []string) error {
+// HandleStartJobCommand starts the job and returns the job ID.
+func (c *Client) HandleStartJobCommand(ctx context.Context, command string, args []string) error {
 	out, err := c.JobRunnerServiceClient.StartJob(ctx, &pb.JobStartRequest{Command: command, Arguments: args})
 
 	if err != nil {
@@ -55,8 +52,8 @@ func (c *Client) handleStartJobCommand(ctx context.Context, command string, args
 	return nil
 }
 
-// handleStopJobCommand stops the job.
-func (c *Client) handleStopJobCommand(ctx context.Context, id string) error {
+// HandleStopJobCommand stops the job.
+func (c *Client) HandleStopJobCommand(ctx context.Context, id string) error {
 	_, err := c.JobRunnerServiceClient.StopJob(ctx, &pb.JobStopRequest{Id: id})
 
 	if err != nil {
@@ -68,8 +65,8 @@ func (c *Client) handleStopJobCommand(ctx context.Context, id string) error {
 	return nil
 }
 
-// handleGetJobCommand retrieves a job's metadata.
-func (c *Client) handleGetJobCommand(ctx context.Context, id string) error {
+// HandleGetJobCommand retrieves a job's metadata.
+func (c *Client) HandleGetJobCommand(ctx context.Context, id string) error {
 	job, err := c.JobRunnerServiceClient.GetJobInfo(ctx, &pb.JobQueryRequest{Id: id})
 
 	if err != nil {
@@ -81,8 +78,8 @@ func (c *Client) handleGetJobCommand(ctx context.Context, id string) error {
 	return nil
 }
 
-// handleStreamJobOutputCommand receives the streamed output of a job and prints it.
-func (c *Client) handleStreamJobOutputCommand(ctx context.Context, id string) error {
+// HandleStreamJobOutputCommand receives the streamed output of a job and prints it.
+func (c *Client) HandleStreamJobOutputCommand(ctx context.Context, id string) error {
 	srv, err := c.JobRunnerServiceClient.StreamJobOutput(ctx, &pb.JobQueryRequest{Id: id})
 
 	if err != nil {
@@ -101,34 +98,5 @@ func (c *Client) handleStreamJobOutputCommand(ctx context.Context, id string) er
 		if err != nil {
 			return fmt.Errorf("stream: %s", err.Error())
 		}
-	}
-}
-
-func main() {
-	cert := flag.String("cert", "certs/client.pem", "path to the client cert's public key")
-	certKey := flag.String("cert-key", "certs/client.key", "path to the client cert's private key")
-	caCert := flag.String("ca-cert", "certs/ca.pem", "path to the CA's public key")
-
-	flag.Parse()
-
-	tlsCreds, err := auth.GetClientTlsCredentials(*cert, *certKey, *caCert)
-	if err != nil {
-		log.Fatalf("could not load tls creds: %s", err.Error())
-	}
-
-	// TODO: use configurable server address and port
-	conn, err := grpc.Dial("0.0.0.0:8080", grpc.WithTransportCredentials(tlsCreds))
-
-	if err != nil {
-		log.Fatalf("could not connect to host: %s", err.Error())
-	}
-
-	client := &Client{
-		pb.NewJobRunnerServiceClient(conn),
-	}
-
-	err = client.handleArgs(flag.Args())
-	if err != nil {
-		log.Fatalf("error handling command args: %s, err: %s", flag.Args(), err.Error())
 	}
 }
