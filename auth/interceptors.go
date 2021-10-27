@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"crypto/x509"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -11,7 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var ClientIDKey = "ClientID"
+const ClientIDKey = "ClientID"
 
 type authStream struct {
 	grpc.ServerStream
@@ -72,26 +71,10 @@ func updateContextWithAuthInfo(ctx context.Context) (context.Context, error) {
 
 	crt := tlsAuth.State.VerifiedChains[0][0]
 
-	if err := verifyClientCa(crt); err != nil {
-		return nil, err
-	}
-
+	// TODO: additionally verify CA cert via comparing Issue name of crt
+	// and Subject name of a loaded CA cert
 	serial := crt.SerialNumber
 
 	ctxWithClientID := context.WithValue(ctx, ClientIDKey, serial)
 	return ctxWithClientID, nil
-}
-
-func verifyClientCa(clientCert *x509.Certificate) error {
-	// TODO: pull this from configurable cert store
-	crt, err := GetCaCert("certs/ca.pem")
-	if err != nil {
-		return status.Error(codes.PermissionDenied, "could not load ca cert for verification")
-	}
-
-	if crt.Subject.SerialNumber != clientCert.Issuer.SerialNumber {
-		return status.Error(codes.PermissionDenied, "client cert is not issued by server CA")
-	}
-
-	return nil
 }
