@@ -66,54 +66,42 @@ client usage that will interact with the API:
 `usage: ./client start --cert CERT_PATH --cert-key KEY_PATH COMMAND [ARGUMENTS ...]`
 ```bash
 ./client start ls -l
-----
-Job ID: ed954e11-ef5a-4b61-b698-8537055d0adc
-Client ID (owner): 123456
 
-Command: ls
-Arguments: [-l]
-
-State: CREATED
-----
+ed954e11-ef5a-4b61-b698-8537055d0adc
 ```
 
 ### Stop Job
 `usage: ./client stop --cert CERT_PATH --cert-key KEY_PATH UUID`
 ```bash
 ./client stop ed954e11-ef5a-4b61-b698-8537055d0adc
-----
-Job ID: ed954e11-ef5a-4b61-b698-8537055d0adc
-Client ID (owner): 123456
 
-Command: ls
-Arguments: [-l]
-
-State: STOPPED
-----
+stopped job with ID: ed954e11-ef5a-4b61-b698-8537055d0adc
 ```
 
 ### Get Job Info
 `usage: ./client get --cert CERT_PATH --cert-key KEY_PATH UUID`
 ```bash
 ./client get ed954e11-ef5a-4b61-b698-8537055d0adc
-----
-Job ID: ed954e11-ef5a-4b61-b698-8537055d0adc
-Client ID (owner): 123456
 
-Command: ls
-Arguments: [-l]
-
-State: RUNNING
-----
+id:"ed954e11-ef5a-4b61-b698-8537055d0adc" command:"ls" arguments:"-l" owner:1 state:RUNNING
 ```
 
 ### Stream Job Output
 `usage: ./client stream --cert CERT_PATH --cert-key KEY_PATH UUID`
 ```bash
 ./client stream ed954e11-ef5a-4b61-b698-8537055d0adc
-total 8
--rw-r--r--  1 rakinuddin  staff   74 15 Oct 17:06 README.md
-drwxr-xr-x  4 rakinuddin  staff  128 15 Oct 17:05 plan
+
+total 40
+drwxr-xr-x  14 rakinuddin  staff    448 26 Oct 00:04 .git
+-rw-r--r--   1 rakinuddin  staff     74 15 Oct 17:06 README.md
+drwxr-xr-x   4 rakinuddin  staff    128 25 Oct 23:38 api
+drwxr-xr-x   4 rakinuddin  staff    128 26 Oct 00:04 client
+drwxr-xr-x   8 rakinuddin  staff    256 25 Oct 22:57 core
+-rw-r--r--   1 rakinuddin  staff    678 25 Oct 23:38 go.mod
+-rw-r--r--   1 rakinuddin  staff  12197 25 Oct 23:38 go.sum
+drwxr-xr-x   4 rakinuddin  staff    128 23 Oct 18:48 plan
+drwxr-xr-x   4 rakinuddin  staff    128 26 Oct 00:04 server
+2021/10/26 00:05:11 finished reading stream
 ```
 
 ## Improvements/Out of Scope Features
