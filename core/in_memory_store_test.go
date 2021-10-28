@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"math/big"
 	"os/exec"
 	"testing"
 
@@ -22,13 +23,13 @@ func (suite *InMemoryJobStoreTestSuite) TestCreateRecord() {
 	cases := []struct {
 		command   string
 		arguments []string
-		owner     int32
+		owner     *big.Int
 		state     JobState
 		jobError  error
 	}{
-		{"/bin/ls", []string{}, 123, Stopped, nil},
-		{"/usr/bin/tail", []string{"-f", "log.txt"}, 789, Created, nil},
-		{"/bin/cp", []string{"file1", "file2"}, 456, Error, fmt.Errorf("file does not exist")},
+		{"/bin/ls", []string{}, big.NewInt(123), Stopped, nil},
+		{"/usr/bin/tail", []string{"-f", "log.txt"}, big.NewInt(789), Created, nil},
+		{"/bin/cp", []string{"file1", "file2"}, big.NewInt(456), Error, fmt.Errorf("file does not exist")},
 	}
 
 	for _, tc := range cases {
@@ -43,7 +44,7 @@ func (suite *InMemoryJobStoreTestSuite) TestCreateRecord() {
 }
 
 func (suite *InMemoryJobStoreTestSuite) TestGetExistingRecord() {
-	jobInfo := suite.store.CreateRecord("1", exec.Command("tail", "-f", "log.txt"), 789, Created, nil)
+	jobInfo := suite.store.CreateRecord("1", exec.Command("tail", "-f", "log.txt"), big.NewInt(789), Created, nil)
 	retrievedJobInfo, err := suite.store.GetRecord(jobInfo.Id)
 	assert.Nil(suite.T(), err, "it should not return an error")
 	assert.Equal(suite.T(), jobInfo, retrievedJobInfo, "retrieved record should be equal to created record")
@@ -56,7 +57,7 @@ func (suite *InMemoryJobStoreTestSuite) TestGetNonExistentRecord() {
 }
 
 func (suite *InMemoryJobStoreTestSuite) TestUpdateRecordState() {
-	jobInfo := suite.store.CreateRecord("1", exec.Command("tail", "-f", "log.txt"), 789, Created, nil)
+	jobInfo := suite.store.CreateRecord("1", exec.Command("tail", "-f", "log.txt"), big.NewInt(789), Created, nil)
 	err := suite.store.UpdateRecordState(jobInfo.Id, Stopped)
 	assert.NoError(suite.T(), err, "it should be a valid state change")
 	updatedJobInfo, _ := suite.store.GetRecord(jobInfo.Id)
@@ -65,7 +66,7 @@ func (suite *InMemoryJobStoreTestSuite) TestUpdateRecordState() {
 
 func (suite *InMemoryJobStoreTestSuite) TestUpdateRecordError() {
 	err := fmt.Errorf("error while running tail")
-	jobInfo := suite.store.CreateRecord("1", exec.Command("tail", "-f", "log.txt"), 789, Created, nil)
+	jobInfo := suite.store.CreateRecord("1", exec.Command("tail", "-f", "log.txt"), big.NewInt(789), Created, nil)
 	suite.store.UpdateRecordError(jobInfo.Id, err)
 	updatedJobInfo, _ := suite.store.GetRecord(jobInfo.Id)
 	assert.Equal(suite.T(), JobState(Error), updatedJobInfo.State)
@@ -73,7 +74,7 @@ func (suite *InMemoryJobStoreTestSuite) TestUpdateRecordError() {
 }
 
 func (suite *InMemoryJobStoreTestSuite) TestUpdateRecordOutput() {
-	jobInfo := suite.store.CreateRecord("1", exec.Command("tail", "-f", "log.txt"), 789, Created, nil)
+	jobInfo := suite.store.CreateRecord("1", exec.Command("tail", "-f", "log.txt"), big.NewInt(789), Created, nil)
 	lb, err := NewLogBuffer(jobInfo.Id)
 
 	assert.NoError(suite.T(), err, "a log buffer should not produce an error")

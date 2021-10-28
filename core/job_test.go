@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"math/big"
 	"os"
 	"os/exec"
 	"testing"
@@ -22,17 +23,18 @@ func (suite *JobTestSuite) SetupTest() {
 
 func (suite *JobTestSuite) TestStartJob() {
 	cmd := mockExecCommand("echo", "hello", "world")
-	err := suite.jr.StartJob("1", cmd)
+	job := suite.jr.CreateJob("1", big.NewInt(123), cmd)
+	err := suite.jr.StartJob(job)
 	assert.NoError(suite.T(), err, "starting job should not throw an error")
 
-	job, err := suite.jr.store.GetRecord("1")
+	job, err = suite.jr.store.GetRecord("1")
 	assert.NoError(suite.T(), err, "getting should not throw an error")
 	assert.Equal(suite.T(), JobState(Completed), job.State, "it should have completed")
 }
 
 func (suite *JobTestSuite) TestStopJob() {
 	cmd := mockExecCommand("echo", "hello", "world")
-	job := suite.jr.store.CreateRecord("1", cmd, 1, JobState(Created), nil)
+	job := suite.jr.store.CreateRecord("1", cmd, big.NewInt(123), JobState(Created), nil)
 	cmd.Start()
 	suite.jr.StopJob(job.Id)
 	updatedJob, _ := suite.jr.store.GetRecord(job.Id)
@@ -44,8 +46,9 @@ func (suite *JobTestSuite) TestStopLongJob() {
 	cmd := mockExecCommand("sleep")
 
 	errChan := make(chan error, 1)
+	job := suite.jr.CreateJob("1", big.NewInt(123), cmd)
 	go func() {
-		errChan <- suite.jr.StartJob("1", cmd)
+		errChan <- suite.jr.StartJob(job)
 	}()
 	for job, _ := suite.jr.store.GetRecord("1"); job.State == JobState(Created); job, _ = suite.jr.store.GetRecord("1") {
 	}
@@ -58,15 +61,16 @@ func (suite *JobTestSuite) TestStopLongJob() {
 
 func (suite *JobTestSuite) TestStopUnstartedJob() {
 	cmd := mockExecCommand("echo", "hello", "world")
-	job := suite.jr.store.CreateRecord("1", cmd, 1, JobState(Created), nil)
+	job := suite.jr.store.CreateRecord("1", cmd, big.NewInt(1), JobState(Created), nil)
 
 	assert.Error(suite.T(), suite.jr.StopJob(job.Id), "it should error for unstarted job")
 }
 
 func (suite *JobTestSuite) TestRunJob() {
 	cmd := mockExecCommand("echo", "hello", "world")
-	job := suite.jr.store.CreateRecord("1", cmd, 1, JobState(Created), nil)
-	suite.jr.runJob(job.Id, cmd)
+	job := suite.jr.store.CreateRecord("1", cmd, big.NewInt(1), JobState(Created), nil)
+	err := suite.jr.runJob(job.Id, cmd)
+	assert.NoError(suite.T(), err, "running job should not error")
 	assert.FileExists(suite.T(), fmt.Sprintf("/var/log/linux-process-runner/%s.log", job.Id), "it should create an output file")
 
 	updateJob, _ := suite.jr.store.GetRecord(job.Id)
